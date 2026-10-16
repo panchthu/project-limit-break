@@ -19,6 +19,8 @@ const BAR_RECT_HP := Rect2(4, 163, 52, 4)
 const BAR_RECT_KI := Rect2(4, 171, 52, 4)
 ## Markierte Felder einer angekuendigten Boss-Attacke.
 const WARNING_COLOR := Color(1, 0.25, 0.2, 0.45)
+## Feine Rasterlinien ueber dem Hintergrundbild, damit man die Felder erkennt.
+const GRID_LINE_COLOR := Color(0, 0, 0, 0.15)
 
 ## Kurze Pause nach Sieg oder Niederlage, bevor der Ergebnis-Bildschirm kommt.
 const END_DELAY := 1.2
@@ -397,13 +399,20 @@ func _show_message(text: String) -> void:
 	_update_status()
 
 
-## Schachbrett-Boden als Platzhalter (Farben aus der Map) und Warnfelder der Bosse.
+## Boden: Hintergrundbild der Map mit feinem Raster, sonst Schachbrett. Dazu die Warnfelder der Bosse.
 func _draw() -> void:
 	var s := Grid.TILE_SIZE
-	for y in Grid.HEIGHT:
-		for x in Grid.WIDTH:
-			var color := map.floor_color_a if (x + y) % 2 == 0 else map.floor_color_b
-			draw_rect(Rect2(x * s, y * s, s, s), color)
+	if map.background:
+		draw_texture_rect(map.background, Rect2(0, 0, Grid.WIDTH * s, Grid.HEIGHT * s), false)
+		for x in range(1, Grid.WIDTH):
+			draw_line(Vector2(x * s, 0), Vector2(x * s, Grid.HEIGHT * s), GRID_LINE_COLOR, 1.0)
+		for y in range(1, Grid.HEIGHT):
+			draw_line(Vector2(0, y * s), Vector2(Grid.WIDTH * s, y * s), GRID_LINE_COLOR, 1.0)
+	else:
+		for y in Grid.HEIGHT:
+			for x in Grid.WIDTH:
+				var color := map.floor_color_a if (x + y) % 2 == 0 else map.floor_color_b
+				draw_rect(Rect2(x * s, y * s, s, s), color)
 	for enemy: Enemy in _enemies():
 		for cell in enemy.warned_cells:
 			draw_rect(Rect2(cell * s, Vector2(s, s)), WARNING_COLOR)

@@ -7,6 +7,7 @@ Der Quellordner hat denselben Aufbau wie limit-break-assets/ im Projekt:
     sprites/helden/<name>/0_idle.png ... 6_ko.png   (7 Posen pro Held)
     sprites/gegner/<name>.png, sprites/bosse/<name>.png   (eine Pose)
     artworks/helden/<name>.png, artworks/bosse/<name>_portrait.png
+    maps/<name>.png   (Hintergrund einer Map, optional)
 
 Braucht Pillow und numpy. Neue Figur? Einfach unten in HOEHEN eintragen.
 """
@@ -37,6 +38,9 @@ POSEN = ["idle", "gehen", "angriff1", "angriff2", "spezial", "treffer", "ko"]
 ## Artworks der Helden (Auswahl und Ergebnis) und Boss-Portraets (Boss-Intro).
 ARTWORK_GROESSE = (120, 160)
 PORTRAIT_GROESSE = (256, 144)
+## Map-Hintergruende fuellen das Spielfeld (20 x 10 Felder).
+MAPS = ["bambustal", "wuestenruine", "himmelsturm"]
+MAP_GROESSE = (320, 160)
 
 
 def verkleinern(im: Image.Image, faktor: float) -> np.ndarray:
@@ -103,6 +107,14 @@ def main() -> None:
             os.makedirs(f"{OUT}/artworks/bosse", exist_ok=True)
             zuschneiden(Image.open(f"{quelle}/artworks/{key}_portrait.png"), PORTRAIT_GROESSE, oben=0.3).save(
                 f"{OUT}/artworks/{key}.png", optimize=True)
+    for name in MAPS:
+        pfad = f"{quelle}/maps/{name}.png"
+        if not os.path.exists(pfad):
+            print(f"maps/{name}: noch kein Bild")
+            continue
+        os.makedirs(f"{OUT}/maps", exist_ok=True)
+        zuschneiden(Image.open(pfad), MAP_GROESSE).save(f"{OUT}/maps/{name}.png", optimize=True)
+        print(f"maps/{name}: {MAP_GROESSE[0]}x{MAP_GROESSE[1]}")
 
 
 if __name__ == "__main__":
