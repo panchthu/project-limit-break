@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="TechniqueData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/technique_data.gd" id="1_tech"]
+
+[resource]
+script = ExtResource("1_tech")
+display_name = "Erdstampfer"
+short_name = "Stampfer"
+description = "3 Schaden rundherum, Gegner fliegen 1 Feld weg"
+ki_cost = 4
+effect = 2
+power = 3
+distance = 1

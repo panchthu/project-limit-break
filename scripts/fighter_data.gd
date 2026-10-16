@@ -28,3 +28,15 @@ extends Resource
 @export var attack_range := 1
 ## Ausweichen: Chance (0 bis 1), einem Angriff komplett zu entgehen.
 @export_range(0.0, 1.0, 0.05) var dodge_chance := 0.0
+
+@export_group("Ki")
+## Groesse der Ki-Leiste.
+@export var max_ki := 10
+## Ki zu Beginn des Runs.
+@export var start_ki := 0
+## Ki pro Aufladen (kostet den ganzen Zug).
+@export var ki_charge := 3
+## Ki fuer jeden normalen Treffer.
+@export var ki_per_hit := 1
+## Techniken auf Q und E (in dieser Reihenfolge).
+@export var techniques: Array[TechniqueData] = []

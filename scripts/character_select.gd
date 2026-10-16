@@ -1,9 +1,9 @@
 extends Control
 ## Kaempfer-Auswahl: links/rechts waehlen, Enter startet den Run, Esc zurueck zum Titel.
 
-const BOX_SIZE := Vector2(64, 64)
+const BOX_SIZE := Vector2(56, 56)
 const BOX_GAP := 24.0
-const BOX_TOP := 40.0
+const BOX_TOP := 28.0
 
 var selected := 0
 
@@ -11,6 +11,7 @@ var selected := 0
 @onready var stats_label: Label = $StatsLabel
 @onready var ability_label: Label = $AbilityLabel
 @onready var description_label: Label = $DescriptionLabel
+@onready var technique_label: Label = $TechniqueLabel
 
 
 func _ready() -> void:
@@ -37,8 +38,14 @@ func _change(step: int) -> void:
 func _refresh() -> void:
 	var fighter := Game.FIGHTERS[selected]
 	name_label.text = fighter.display_name
-	stats_label.text = "HP %d   Angriff %d" % [fighter.max_hp, fighter.attack]
+	stats_label.text = "HP %d   Angriff %d   Ki %d" % [fighter.max_hp, fighter.attack, fighter.max_ki]
 	ability_label.text = "%s: %s" % [fighter.ability_name, fighter.ability_text]
+	var lines: PackedStringArray = []
+	var keys := ["Q", "E"]
+	for i in fighter.techniques.size():
+		var technique := fighter.techniques[i]
+		lines.append("%s %s (%d Ki): %s" % [keys[i], technique.display_name, technique.ki_cost, technique.description])
+	technique_label.text = "\n".join(lines)
 	description_label.text = fighter.description
 	queue_redraw()
 

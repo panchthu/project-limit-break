@@ -7,7 +7,8 @@ const SELECT_SCENE := "res://scenes/character_select.tscn"
 const BATTLE_SCENE := "res://scenes/main.tscn"
 const RESULT_SCENE := "res://scenes/result.tscn"
 
-## Tastenbelegung (WASD und Pfeiltasten, Enter/Leertaste bestaetigen, Esc zurueck).
+## Tastenbelegung (WASD und Pfeiltasten, Enter/Leertaste bestaetigen, Esc zurueck,
+## Q/E Techniken, F Ki aufladen).
 const KEYS := {
 	"move_up": [KEY_W, KEY_UP],
 	"move_down": [KEY_S, KEY_DOWN],
@@ -16,6 +17,9 @@ const KEYS := {
 	"confirm": [KEY_ENTER, KEY_KP_ENTER, KEY_SPACE],
 	"back": [KEY_ESCAPE],
 	"restart": [KEY_R],
+	"technique_1": [KEY_Q],
+	"technique_2": [KEY_E],
+	"charge": [KEY_F],
 }
 
 ## Die spielbaren Kaempfer. Werte und Faehigkeiten stehen in den Daten-Dateien.

@@ -1,6 +1,8 @@
-[gd_resource type="Resource" script_class="FighterData" load_steps=2 format=3]
+[gd_resource type="Resource" script_class="FighterData" load_steps=4 format=3]
 
 [ext_resource type="Script" path="res://scripts/fighter_data.gd" id="1_data"]
+[ext_resource type="Resource" path="res://data/techniques/kombo.tres" id="2_tech"]
+[ext_resource type="Resource" path="res://data/techniques/konter_haltung.tres" id="3_tech"]
 
 [resource]
 script = ExtResource("1_data")
@@ -12,3 +14,5 @@ color = Color(0.949, 0.647, 0.255, 1)
 ability_name = "Konter"
 ability_text = "Schlaegt sofort zurueck, wenn er getroffen wird"
 counter_damage = 2
+max_ki = 10
+techniques = Array[Resource]([ExtResource("2_tech"), ExtResource("3_tech")])

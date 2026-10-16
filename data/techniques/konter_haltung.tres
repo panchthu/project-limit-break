@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="TechniqueData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/technique_data.gd" id="1_tech"]
+
+[resource]
+script = ExtResource("1_tech")
+display_name = "Konter-Haltung"
+short_name = "Haltung"
+description = "Blockt einen Gegnerzug, Angreifer kassieren 4"
+ki_cost = 4
+effect = 1
+power = 4

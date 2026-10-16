@@ -1,6 +1,8 @@
-[gd_resource type="Resource" script_class="FighterData" load_steps=2 format=3]
+[gd_resource type="Resource" script_class="FighterData" load_steps=4 format=3]
 
 [ext_resource type="Script" path="res://scripts/fighter_data.gd" id="1_data"]
+[ext_resource type="Resource" path="res://data/techniques/ki_welle.tres" id="2_tech"]
+[ext_resource type="Resource" path="res://data/techniques/nachbild.tres" id="3_tech"]
 
 [resource]
 script = ExtResource("1_data")
@@ -13,3 +15,6 @@ ability_name = "Ki-Strahl + Ausweichen"
 ability_text = "Trifft bis 4 Felder weit, weicht 30% der Angriffe aus"
 attack_range = 4
 dodge_chance = 0.3
+max_ki = 12
+ki_charge = 4
+techniques = Array[Resource]([ExtResource("2_tech"), ExtResource("3_tech")])
