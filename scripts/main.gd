@@ -18,14 +18,8 @@ const ROUNDS := [
 	]},
 ]
 
-## Tastenbelegung (WASD und Pfeiltasten, R fuer Neustart).
-const KEYS := {
-	"move_up": [KEY_W, KEY_UP],
-	"move_down": [KEY_S, KEY_DOWN],
-	"move_left": [KEY_A, KEY_LEFT],
-	"move_right": [KEY_D, KEY_RIGHT],
-	"restart": [KEY_R],
-}
+## Kurze Pause nach Sieg oder Niederlage, bevor der Ergebnis-Bildschirm kommt.
+const END_DELAY := 1.2
 
 var turn := 0
 var round_index := 0
@@ -39,7 +33,7 @@ var _game_over := false
 
 
 func _ready() -> void:
-	_setup_input()
+	_apply_fighter(Game.fighter())
 	player.died.connect(_on_player_died)
 	_start_round(0)
 
@@ -55,23 +49,16 @@ func _start_round(index: int) -> void:
 	_show_message("%s!" % round_data.name)
 
 
-func _setup_input() -> void:
-	for action: String in KEYS:
-		if InputMap.has_action(action):
-			continue
-		InputMap.add_action(action)
-		for key: Key in KEYS[action]:
-			var event := InputEventKey.new()
-			event.physical_keycode = key
-			InputMap.action_add_event(action, event)
+## Werte des gewaehlten Kaempfers auf die Spielfigur uebertragen.
+func _apply_fighter(fighter: Dictionary) -> void:
+	player.max_hp = fighter.max_hp
+	player.attack = fighter.attack
+	player.body_color = fighter.color
+	player.heal_full()
 
 
 func _process(_delta: float) -> void:
-	if _game_over:
-		if Input.is_action_just_pressed("restart"):
-			get_tree().reload_current_scene()
-		return
-	if _busy:
+	if _game_over or _busy:
 		return
 	var dir: Vector2i = player.read_direction()
 	if dir != Vector2i.ZERO:
@@ -137,16 +124,18 @@ func _on_enemy_died() -> void:
 		player.heal_full()
 		_start_round(round_index + 1)
 	else:
-		_end_game("Gewonnen! R = neu")
+		_end_game(true, "Gewonnen!")
 
 
 func _on_player_died() -> void:
-	_end_game("Besiegt! R = neu")
+	_end_game(false, "Besiegt!")
 
 
-func _end_game(text: String) -> void:
+func _end_game(won: bool, text: String) -> void:
 	_show_message(text)
 	_game_over = true
+	await get_tree().create_timer(END_DELAY).timeout
+	Game.end_run(won, turn)
 
 
 func _update_status() -> void:

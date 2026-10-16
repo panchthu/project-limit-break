@@ -15,9 +15,13 @@ compatibility/default_parent_skeleton_in_mesh_instance_3d=true
 [application]
 
 config/name="Project Limit Break"
-run/main_scene="res://scenes/main.tscn"
+run/main_scene="res://scenes/title.tscn"
 config/features=PackedStringArray("4.7", "GL Compatibility")
 config/icon="res://icon.svg"
+
+[autoload]
+
+Game="*res://scripts/game.gd"
 
 [display]
 
@@ -29,6 +33,8 @@ window/stretch/mode="viewport"
 window/stretch/scale_mode="integer"
 
 [rendering]
+
+environment/defaults/default_clear_color=Color(0.114, 0.102, 0.184, 1)
 
 textures/canvas_textures/default_texture_filter=0
 renderer/rendering_method="gl_compatibility"
