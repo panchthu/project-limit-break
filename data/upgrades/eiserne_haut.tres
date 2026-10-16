@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/upgrade_data.gd" id="1_upgrade"]
+
+[resource]
+script = ExtResource("1_upgrade")
+display_name = "Eiserne Haut"
+description = "Nimmt 1 Schaden weniger pro Treffer (selten)"
+stat = 7
+amount = 1
+max_picks = 2
+weight = 1
+color = Color(1, 0.878, 0.541, 1)

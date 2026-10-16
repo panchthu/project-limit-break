@@ -4,6 +4,8 @@ extends Node2D
 ## Eine Aktion pro Zug. Techniken kosten Ki, Aufladen und normale Treffer bringen Ki.
 ## Ein Run besteht aus mehreren Maps (Game.MAPS), jede Map aus Runden (data/maps/*.tres).
 ## Sind alle Gegner einer Runde besiegt, startet die naechste; nach dem Boss kommt die naechste Map.
+## Nach jeder Runde gibt es ein Upgrade zur Wahl (UpgradeMenu). Auf der letzten Map erwacht
+## stattdessen direkt vor dem Endboss die Verwandlung des Kaempfers (Taste T bei voller Ki-Leiste).
 ## Figuren werden nach ihrer Zeile sortiert gezeichnet (y_sort), damit weiter unten stehende
 ## Figuren vor den hoeheren stehen. Zu Beginn jeder Map und vor jedem Boss kommt ein Auftritt (Intro).
 
@@ -24,6 +26,8 @@ const GRID_LINE_COLOR := Color(0, 0, 0, 0.15)
 
 ## Kurze Pause nach Sieg oder Niederlage, bevor der Ergebnis-Bildschirm kommt.
 const END_DELAY := 1.2
+## Kurze Pause nach dem letzten Treffer einer Runde, bevor die Upgrade-Auswahl kommt.
+const UPGRADE_DELAY := 0.6
 
 var turn := 0
 var map: MapData
@@ -34,6 +38,8 @@ var _game_over := false
 ## Zwischen zwei Maps und waehrend eines Auftritts keine Eingabe.
 var _between_maps := false
 var _intro := false
+## Waehrend Upgrade-Auswahl oder Erwachen keine Eingabe.
+var _choosing := false
 ## Technik, fuer die gerade eine Richtung gewaehlt wird (null = keine).
 var _aiming: TechniqueData = null
 
@@ -43,10 +49,14 @@ var _aiming: TechniqueData = null
 @onready var technique_label: Label = $TechniqueLabel
 @onready var round_label: Label = $RoundLabel
 @onready var intro: Intro = $Intro
+@onready var upgrade_menu: UpgradeMenu = $UpgradeMenu
 
 
 func _ready() -> void:
-	player.setup(Game.fighter())
+	# Wird die Szene direkt gestartet (ohne Auswahl), gibt es noch keinen Run.
+	if Game.run_fighter == null:
+		Game.run_fighter = Game.fighter().duplicate()
+	player.setup(Game.run_fighter)
 	player.died.connect(_on_player_died)
 	player.ki_changed.connect(_update_status)
 	_start_map(0)
@@ -76,6 +86,8 @@ func _start_round(index: int) -> void:
 		if enemy.data.is_boss:
 			boss = enemy.data
 	_show_message("%s!" % round_data.display_name)
+	if player.fighter.round_start_ki > 0:
+		player.gain_ki(player.fighter.round_start_ki)
 	if boss and boss.portrait:
 		_intro = true
 		intro.show_boss(boss)
@@ -84,7 +96,7 @@ func _start_round(index: int) -> void:
 
 
 func _process(_delta: float) -> void:
-	if _game_over or _busy or _between_maps or _intro:
+	if _game_over or _busy or _between_maps or _intro or _choosing:
 		return
 	if _aiming:
 		_process_aiming()
@@ -93,8 +105,13 @@ func _process(_delta: float) -> void:
 		if Input.is_action_just_pressed("technique_%d" % (i + 1)):
 			_select_technique(player.fighter.techniques[i])
 			return
+	if Input.is_action_just_pressed("transform"):
+		_try_transform()
+		return
 	if Input.is_action_just_pressed("charge"):
-		if player.ki >= player.max_ki:
+		if player.is_transformed():
+			_show_message("Verwandelt: kein Aufladen!")
+		elif player.ki >= player.max_ki:
 			_show_message("Ki ist voll!")
 		else:
 			_run_turn(_charge)
@@ -107,7 +124,7 @@ func _process(_delta: float) -> void:
 ## Technik-Taste gedrueckt: sofort ausfuehren oder erst eine Richtung waehlen lassen.
 func _select_technique(technique: TechniqueData) -> void:
 	if not player.can_afford(technique):
-		_show_message("Zu wenig Ki! (%d)" % technique.ki_cost)
+		_show_message("Zu wenig Ki! (%d)" % player.technique_cost(technique))
 		return
 	if technique.needs_direction():
 		_aiming = technique
@@ -148,8 +165,14 @@ func _try_technique(technique: TechniqueData, dir: Vector2i) -> void:
 
 func _move_or_attack(dir: Vector2i) -> void:
 	var target := player.cell + dir
+	# Lichtlaeufer: der Schlag wird ein Strahl durch alle Gegner in Reichweite.
+	if player.form and player.form.piercing:
+		var targets := _enemies_in_line(player.cell, dir, player.attack_range())
+		if not targets.is_empty():
+			_run_turn(_piercing_attack.bind(dir, targets))
+			return
 	# Mit Reichweite > 1 (Ki-Akrobat) wird auch ein Gegner weiter weg in dieser Richtung getroffen.
-	var enemy := _enemy_in_line(player.cell, dir, player.fighter.attack_range)
+	var enemy := _enemy_in_line(player.cell, dir, player.attack_range())
 	if enemy == null and not _is_free(target):
 		# Gegen die Wand gelaufen: nur umdrehen, kein Zug verbraucht.
 		player.face(dir)
@@ -163,9 +186,13 @@ func _move_or_attack(dir: Vector2i) -> void:
 ## Ein ganzer Zug: Aktion des Spielers, dann alle Gegner.
 func _run_turn(action: Callable) -> void:
 	_busy = true
+	var was_transformed := player.is_transformed()
 	await action.call()
 	await _enemy_turn()
 	player.clear_stances()
+	# Der Zug, in dem er sich verwandelt, kostet noch nichts.
+	if was_transformed and player.is_transformed():
+		_drain_form()
 	turn += 1
 	_update_status()
 	_busy = false
@@ -174,6 +201,47 @@ func _run_turn(action: Callable) -> void:
 func _charge() -> void:
 	await player.charge()
 	_show_message("Ki aufgeladen! +%d" % player.fighter.ki_charge)
+
+
+## T gedrueckt: verwandeln, wenn es geht, sonst sagen, was fehlt.
+func _try_transform() -> void:
+	if not Game.transformation_unlocked:
+		return
+	if player.is_transformed():
+		_show_message("Schon verwandelt!")
+	elif not player.can_transform():
+		_show_message("Ki-Leiste muss voll sein!")
+	else:
+		_run_turn(_transform)
+
+
+## Verwandeln mit Ki-Explosion: Gegner rundherum nehmen Schaden und fliegen 1 Feld weg.
+func _transform() -> void:
+	await player.transform()
+	var form := player.form
+	for enemy: Unit in _enemies_around(player.cell):
+		enemy.take_damage(form.burst_damage)
+		if enemy.is_alive():
+			await player.throw_unit(enemy, _is_free, 1, 0, (enemy.cell - player.cell).sign())
+	_show_message("%s!" % form.display_name)
+
+
+## Verwandlung verbrennt Ki. Ist die Leiste leer, ist sie vorbei.
+func _drain_form() -> void:
+	player.gain_ki(-player.form.ki_drain)
+	if player.ki <= 0:
+		player.revert()
+		_show_message("Die Verwandlung erlischt!")
+
+
+## Lichtlaeufer: Strahl in Reichweite, jeder Gegner darin nimmt normalen Schaden.
+func _piercing_attack(dir: Vector2i, targets: Array[Unit]) -> void:
+	player.gain_ki(player.fighter.ki_per_hit)
+	player.heal(player.fighter.heal_per_hit)
+	await player.beam(dir, mini(player.attack_range(), _cells_to_wall(player.cell, dir)))
+	for enemy: Unit in targets:
+		enemy.take_damage(player.attack)
+	_show_message("Lichtstrahl! -%d x%d" % [player.attack, targets.size()])
 
 
 ## Warum die Technik gerade nicht geht ("" = sie geht).
@@ -196,7 +264,9 @@ func _technique_problem(technique: TechniqueData, dir: Vector2i) -> String:
 
 ## Fuehrt eine Technik aus (Ziel wurde vorher geprueft).
 func _use_technique(technique: TechniqueData, dir: Vector2i) -> void:
-	player.gain_ki(-technique.ki_cost)
+	player.gain_ki(-player.technique_cost(technique))
+	# Upgrade "Technik-Meister" macht jede Technik staerker.
+	var power := technique.power + player.fighter.technique_power
 	var text := technique.display_name + "!"
 	match technique.effect:
 		TechniqueData.Effect.KOMBO:
@@ -204,24 +274,24 @@ func _use_technique(technique: TechniqueData, dir: Vector2i) -> void:
 			for i in technique.hits:
 				if not enemy.is_alive():
 					break
-				await player.attack_unit(enemy, technique.power)
-			text += " -%d x%d" % [technique.power, technique.hits]
+				await player.attack_unit(enemy, power)
+			text += " -%d x%d" % [power, technique.hits]
 		TechniqueData.Effect.KONTER_HALTUNG:
-			player.counter_stance = technique.power
+			player.counter_stance = power
 			player.queue_redraw()
 		TechniqueData.Effect.STAMPFER:
 			await player.charge_flash()
 			for enemy: Unit in _enemies_around(player.cell):
-				enemy.take_damage(technique.power)
+				enemy.take_damage(power)
 				if enemy.is_alive():
 					var away := (enemy.cell - player.cell).sign()
 					await player.throw_unit(enemy, _is_free, technique.distance, 0, away)
-			text += " -%d" % technique.power
+			text += " -%d" % power
 		TechniqueData.Effect.RIESENWURF:
 			var enemy := _unit_at(player.cell + dir)
 			player.face(dir)
-			await player.attack_unit(enemy, technique.power)
-			text += " -%d" % technique.power
+			await player.attack_unit(enemy, power)
+			text += " -%d" % power
 			if enemy.is_alive():
 				var slam := await player.throw_unit(enemy, _is_free, technique.distance, technique.slam_damage, dir)
 				if slam > 0:
@@ -230,8 +300,8 @@ func _use_technique(technique: TechniqueData, dir: Vector2i) -> void:
 			var targets := _enemies_in_line(player.cell, dir)
 			await player.beam(dir, _cells_to_wall(player.cell, dir))
 			for enemy: Unit in targets:
-				enemy.take_damage(technique.power)
-			text += " -%d" % technique.power
+				enemy.take_damage(power)
+			text += " -%d" % power
 		TechniqueData.Effect.NACHBILD:
 			await player.dash_to(_dash_target(player.cell, dir, technique.distance))
 			player.sure_dodge = true
@@ -243,6 +313,7 @@ func _use_technique(technique: TechniqueData, dir: Vector2i) -> void:
 func _player_attack(enemy: Unit) -> void:
 	var text: String
 	player.gain_ki(player.fighter.ki_per_hit)
+	player.heal(player.fighter.heal_per_hit)
 	if _distance(player.cell, enemy.cell) > 1:
 		await player.shoot(enemy)
 		text = "Ki-Strahl! -%d" % player.attack
@@ -275,13 +346,13 @@ func _enemies() -> Array[Node]:
 	return get_tree().get_nodes_in_group("enemies")
 
 
-## Alle Gegner in gerader Linie bis zur Wand.
-func _enemies_in_line(from: Vector2i, dir: Vector2i) -> Array[Unit]:
+## Alle Gegner in gerader Linie bis zur Wand (oder hoechstens max_range Felder weit).
+func _enemies_in_line(from: Vector2i, dir: Vector2i, max_range := Grid.WIDTH) -> Array[Unit]:
 	var found: Array[Unit] = []
 	if dir == Vector2i.ZERO:
 		return found
 	var cell := from + dir
-	while Grid.is_inside(cell):
+	while Grid.is_inside(cell) and _distance(from, cell) <= max_range:
 		var enemy := _unit_at(cell)
 		if enemy:
 			found.append(enemy)
@@ -354,12 +425,41 @@ func _on_enemy_died() -> void:
 		return
 	# Zwischen den Runden sammelt der Kaempfer neue Kraft.
 	player.heal_full()
+	var last_map := Game.map_index + 1 >= Game.MAPS.size()
+	if last_map and round_index + 1 >= map.rounds.size():
+		_end_game(true, "Gewonnen!")
+		return
+	_choosing = true
+	_show_message("Runde geschafft!")
+	await get_tree().create_timer(UPGRADE_DELAY).timeout
+	# Letzte Map, als Naechstes kommt der Endboss: die Verwandlung erwacht statt eines Upgrades.
+	if last_map and round_index + 2 == map.rounds.size() and player.fighter.transformation:
+		await _awaken()
+	else:
+		await _pick_upgrade()
+	_choosing = false
 	if round_index + 1 < map.rounds.size():
 		_start_round(round_index + 1)
-	elif Game.map_index + 1 < Game.MAPS.size():
-		_start_next_map()
 	else:
-		_end_game(true, "Gewonnen!")
+		_start_next_map()
+
+
+func _pick_upgrade() -> void:
+	var choices := Game.roll_upgrades()
+	if choices.is_empty():
+		return
+	var upgrade := await upgrade_menu.choose(choices, player.fighter)
+	Game.take_upgrade(upgrade)
+	player.refresh_stats()
+	player.heal_full()
+	_show_message("%s!" % upgrade.display_name)
+
+
+func _awaken() -> void:
+	Game.transformation_unlocked = true
+	await upgrade_menu.awaken(player.fighter)
+	player.set_ki(player.max_ki)
+	_show_message("T = %s!" % player.fighter.transformation.display_name)
 
 
 ## Map geschafft: kurz durchatmen, Spieler zurueck an den Start, naechste Map.
@@ -390,8 +490,11 @@ func _update_status() -> void:
 	var parts: PackedStringArray = []
 	for i in player.fighter.techniques.size():
 		var technique: TechniqueData = player.fighter.techniques[i]
-		parts.append("%s %s %d" % [TECHNIQUE_KEYS[i], technique.label(), technique.ki_cost])
-	parts.append("F Laden")
+		parts.append("%s %s %d" % [TECHNIQUE_KEYS[i], technique.label(), player.technique_cost(technique)])
+	if not player.is_transformed():
+		parts.append("F Laden")
+	if Game.transformation_unlocked and player.fighter.transformation:
+		parts.append("T %s" % player.fighter.transformation.label())
 	technique_label.text = "  ".join(parts)
 	queue_redraw()
 
@@ -422,7 +525,8 @@ func _draw() -> void:
 		for cell in enemy.warned_cells:
 			draw_rect(Rect2(cell * s, Vector2(s, s)), WARNING_COLOR)
 	_draw_bar(BAR_RECT_HP, player.hp, player.max_hp, HP_BAR_COLOR, 0)
-	_draw_bar(BAR_RECT_KI, player.ki, player.max_ki, KI_BAR_COLOR, player.max_ki)
+	var ki_color := player.form.aura_color if player.form else KI_BAR_COLOR
+	_draw_bar(BAR_RECT_KI, player.ki, player.max_ki, ki_color, player.max_ki)
 
 
 ## Leiste unten. Mit segments > 0 wird sie in einzelne Ki-Punkte geteilt.

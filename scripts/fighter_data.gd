@@ -2,7 +2,7 @@ class_name FighterData
 extends Resource
 ## Ein spielbarer Kaempfer als Daten-Datei (siehe data/fighters/*.tres).
 ## Die Faehigkeiten stecken in einfachen Zahlen: 0 heisst "hat er nicht".
-## So koennen spaeter Upgrades (M7) dieselben Werte einfach erhoehen.
+## Upgrades (data/upgrades) erhoehen im laufenden Run einfach dieselben Werte.
 
 @export var display_name := "Kaempfer"
 ## Kurzer Satz fuer die Kaempfer-Auswahl.
@@ -45,3 +45,18 @@ extends Resource
 @export var ki_per_hit := 1
 ## Techniken auf Q und E (in dieser Reihenfolge).
 @export var techniques: Array[TechniqueData] = []
+
+@export_group("Upgrades")
+## Diese Werte sind beim Start 0 und wachsen nur durch Upgrades.
+## Techniken kosten so viel Ki weniger (mindestens 1).
+@export var technique_discount := 0
+## Techniken machen so viel mehr Schaden.
+@export var technique_power := 0
+## HP zurueck bei jedem normalen Treffer.
+@export var heal_per_hit := 0
+## Ki zu Beginn jeder Runde.
+@export var round_start_ki := 0
+
+@export_group("Verwandlung")
+## Erwacht auf der letzten Map vor dem Endboss (Taste T bei voller Ki-Leiste).
+@export var transformation: TransformationData
