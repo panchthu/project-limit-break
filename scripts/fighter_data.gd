@@ -9,8 +9,13 @@ extends Resource
 @export var description := ""
 @export var max_hp := 20
 @export var attack := 3
-## Platzhalter-Farbe, bis echte Pixel-Art da ist.
+## Akzentfarbe (Ersatz, falls kein Sprite da ist).
 @export var color := Color.WHITE
+## Alle Posen nebeneinander in gleich grossen Zellen, Reihenfolge wie Unit.Pose.
+## Der Held schaut im Bild nach rechts.
+@export var sprite_sheet: Texture2D
+## Grosses Bild fuer Kaempfer-Auswahl und Ergebnis (120 x 160).
+@export var artwork: Texture2D
 
 @export_group("Spezialfaehigkeit")
 @export var ability_name := ""

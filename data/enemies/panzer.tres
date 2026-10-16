@@ -1,6 +1,7 @@
-[gd_resource type="Resource" script_class="EnemyData" load_steps=2 format=3]
+[gd_resource type="Resource" script_class="EnemyData" load_steps=3 format=3]
 
 [ext_resource type="Script" path="res://scripts/enemy_data.gd" id="1_enemy"]
+[ext_resource type="Texture2D" path="res://assets/sprites/gegner/panzer.png" id="2_sprite"]
 
 [resource]
 script = ExtResource("1_enemy")
@@ -8,5 +9,6 @@ display_name = "Panzer"
 max_hp = 12
 attack = 3
 color = Color(0.49, 0.604, 0.431, 1)
+sprite = ExtResource("2_sprite")
 behavior = 2
 armor = 1

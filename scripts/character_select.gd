@@ -1,11 +1,14 @@
 extends Control
 ## Kaempfer-Auswahl: links/rechts waehlen, Enter startet den Run, Esc zurueck zum Titel.
 
-const BOX_SIZE := Vector2(56, 56)
-const BOX_GAP := 24.0
-const BOX_TOP := 28.0
+## Die Artworks sind 120 x 160 gross und werden auf halbe Groesse verkleinert.
+const CARD_SIZE := Vector2(60, 80)
+const CARD_GAP := 20.0
+const CARD_TOP := 4.0
+const FRAME_COLOR := Color("ffe08a")
 
 var selected := 0
+var _cards: Array[TextureRect] = []
 
 @onready var name_label: Label = $NameLabel
 @onready var stats_label: Label = $StatsLabel
@@ -16,6 +19,18 @@ var selected := 0
 
 func _ready() -> void:
 	selected = Game.fighter_index
+	for i in Game.FIGHTERS.size():
+		var card := TextureRect.new()
+		card.texture = Game.FIGHTERS[i].artwork
+		card.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		card.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		# Weich verkleinern, sonst flimmern die Details.
+		card.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
+		var rect := _card_rect(i)
+		card.position = rect.position
+		card.size = rect.size
+		add_child(card)
+		_cards.append(card)
 	_refresh()
 
 
@@ -47,23 +62,18 @@ func _refresh() -> void:
 		lines.append("%s %s (%d Ki): %s" % [keys[i], technique.display_name, technique.ki_cost, technique.description])
 	technique_label.text = "\n".join(lines)
 	description_label.text = fighter.description
+	for i in _cards.size():
+		_cards[i].modulate = Color.WHITE if i == selected else Color(0.4, 0.38, 0.5)
 	queue_redraw()
 
 
-func _box_rect(index: int) -> Rect2:
+func _card_rect(index: int) -> Rect2:
 	var count := Game.FIGHTERS.size()
-	var total_width := count * BOX_SIZE.x + (count - 1) * BOX_GAP
-	var left := (size.x - total_width) / 2.0
-	return Rect2(Vector2(left + index * (BOX_SIZE.x + BOX_GAP), BOX_TOP), BOX_SIZE)
+	var total_width := count * CARD_SIZE.x + (count - 1) * CARD_GAP
+	var left := roundf((get_viewport_rect().size.x - total_width) / 2.0)
+	return Rect2(Vector2(left + index * (CARD_SIZE.x + CARD_GAP), CARD_TOP), CARD_SIZE)
 
 
-## Drei farbige Kaestchen als Platzhalter fuer die Kaempfer-Portraets.
+## Goldener Rahmen um das gewaehlte Artwork.
 func _draw() -> void:
-	for i in Game.FIGHTERS.size():
-		var rect := _box_rect(i)
-		var color := Game.FIGHTERS[i].color
-		if i != selected:
-			color = color.darkened(0.55)
-		draw_rect(rect, color)
-		if i == selected:
-			draw_rect(rect.grow(2), Color("ffe08a"), false, 1.0)
+	draw_rect(_card_rect(selected).grow(2), FRAME_COLOR, false, 1.0)

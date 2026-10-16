@@ -4,6 +4,8 @@ extends Node2D
 ## Eine Aktion pro Zug. Techniken kosten Ki, Aufladen und normale Treffer bringen Ki.
 ## Ein Run besteht aus mehreren Maps (Game.MAPS), jede Map aus Runden (data/maps/*.tres).
 ## Sind alle Gegner einer Runde besiegt, startet die naechste; nach dem Boss kommt die naechste Map.
+## Figuren werden nach ihrer Zeile sortiert gezeichnet (y_sort), damit weiter unten stehende
+## Figuren vor den hoeheren stehen. Vor jedem Boss kommt sein Auftritt (BossIntro).
 
 const ENEMY_SCENE := preload("res://scenes/enemy.tscn")
 
@@ -27,8 +29,9 @@ var round_index := 0
 ## Waehrend ein Zug abgespielt wird, keine neue Eingabe.
 var _busy := false
 var _game_over := false
-## Zwischen zwei Maps keine Eingabe.
+## Zwischen zwei Maps und waehrend des Boss-Auftritts keine Eingabe.
 var _between_maps := false
+var _intro := false
 ## Technik, fuer die gerade eine Richtung gewaehlt wird (null = keine).
 var _aiming: TechniqueData = null
 
@@ -37,6 +40,7 @@ var _aiming: TechniqueData = null
 @onready var message_label: Label = $MessageLabel
 @onready var technique_label: Label = $TechniqueLabel
 @onready var round_label: Label = $RoundLabel
+@onready var boss_intro: BossIntro = $BossIntro
 
 
 func _ready() -> void:
@@ -56,16 +60,24 @@ func _start_map(index: int) -> void:
 func _start_round(index: int) -> void:
 	round_index = index
 	var round_data: RoundData = map.rounds[index]
+	var boss: EnemyData = null
 	for i in round_data.enemies.size():
 		var enemy: Enemy = ENEMY_SCENE.instantiate()
 		enemy.setup(round_data.enemies[i], round_data.cells[i])
 		enemy.died.connect(_on_enemy_died)
 		add_child(enemy)
+		if enemy.data.is_boss:
+			boss = enemy.data
 	_show_message("%s!" % round_data.display_name)
+	if boss and boss.portrait:
+		_intro = true
+		boss_intro.show_boss(boss)
+		await boss_intro.closed
+		_intro = false
 
 
 func _process(_delta: float) -> void:
-	if _game_over or _busy or _between_maps:
+	if _game_over or _busy or _between_maps or _intro:
 		return
 	if _aiming:
 		_process_aiming()

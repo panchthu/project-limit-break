@@ -1,8 +1,10 @@
-[gd_resource type="Resource" script_class="FighterData" load_steps=4 format=3]
+[gd_resource type="Resource" script_class="FighterData" load_steps=6 format=3]
 
 [ext_resource type="Script" path="res://scripts/fighter_data.gd" id="1_data"]
 [ext_resource type="Resource" path="res://data/techniques/ki_welle.tres" id="2_tech"]
 [ext_resource type="Resource" path="res://data/techniques/nachbild.tres" id="3_tech"]
+[ext_resource type="Texture2D" path="res://assets/sprites/helden/ki_akrobat.png" id="5_sprite"]
+[ext_resource type="Texture2D" path="res://assets/artworks/helden/ki_akrobat.png" id="6_artwork"]
 
 [resource]
 script = ExtResource("1_data")
@@ -11,6 +13,8 @@ description = "Wenig HP. Kaempft lieber auf Abstand."
 max_hp = 14
 attack = 3
 color = Color(0.31, 0.82, 0.647, 1)
+sprite_sheet = ExtResource("5_sprite")
+artwork = ExtResource("6_artwork")
 ability_name = "Ki-Strahl + Ausweichen"
 ability_text = "Trifft bis 4 Felder weit, weicht 30% der Angriffe aus"
 attack_range = 4

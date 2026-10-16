@@ -1,6 +1,7 @@
-[gd_resource type="Resource" script_class="EnemyData" load_steps=2 format=3]
+[gd_resource type="Resource" script_class="EnemyData" load_steps=3 format=3]
 
 [ext_resource type="Script" path="res://scripts/enemy_data.gd" id="1_enemy"]
+[ext_resource type="Texture2D" path="res://assets/sprites/gegner/flitzer.png" id="2_sprite"]
 
 [resource]
 script = ExtResource("1_enemy")
@@ -8,5 +9,6 @@ display_name = "Flitzer"
 max_hp = 4
 attack = 1
 color = Color(0.91, 0.831, 0.302, 1)
+sprite = ExtResource("2_sprite")
 behavior = 3
 steps = 2
