@@ -1,5 +1,5 @@
 extends Node
-## Globaler Spielzustand (Autoload "Game"): Tastenbelegung, Kaempfer-Liste,
+## Globaler Spielzustand (Autoload "Game"): Tastenbelegung, Kaempfer- und Map-Liste,
 ## der laufende Run und der Wechsel zwischen den Bildschirmen.
 
 const TITLE_SCENE := "res://scenes/title.tscn"
@@ -29,8 +29,17 @@ const FIGHTERS: Array[FighterData] = [
 	preload("res://data/fighters/ki_akrobat.tres"),
 ]
 
+## Die Maps eines Runs, in dieser Reihenfolge. Runden und Gegner stehen in den Daten-Dateien.
+const MAPS: Array[MapData] = [
+	preload("res://data/maps/map_1_bambustal.tres"),
+	preload("res://data/maps/map_2_wuestenruine.tres"),
+	preload("res://data/maps/map_3_himmelsturm.tres"),
+]
+
 ## Index in FIGHTERS des gewaehlten Kaempfers.
 var fighter_index := 0
+## Index in MAPS der aktuellen Map.
+var map_index := 0
 ## Ergebnis des letzten Runs (fuer den Ergebnis-Bildschirm).
 var last_run_won := false
 var last_run_turns := 0
@@ -54,6 +63,7 @@ func goto_select() -> void:
 
 func start_run(index: int) -> void:
 	fighter_index = index
+	map_index = 0
 	get_tree().change_scene_to_file(BATTLE_SCENE)
 
 

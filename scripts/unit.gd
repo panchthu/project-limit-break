@@ -7,6 +7,8 @@ signal died
 
 ## Dauer der Schritt-Animation in Sekunden.
 const MOVE_TIME := 0.12
+## Flugzeit eines Ki-Schusses.
+const BLAST_TIME := 0.15
 
 @export var start_cell := Vector2i.ZERO
 @export var max_hp := 10
@@ -53,6 +55,22 @@ func lunge_at(other: Unit) -> void:
 	tween.tween_property(self, "position", home + Vector2(facing) * 6.0, 0.05)
 	tween.tween_property(self, "position", home, 0.08)
 	await tween.finished
+
+
+## Ki-Schuss: ein Lichtball fliegt zum Ziel (nur Animation, kein Schaden).
+func fire_blast(target: Unit, color: Color) -> void:
+	face((target.cell - cell).sign())
+	var blast := ColorRect.new()
+	blast.color = color
+	blast.size = Vector2(4, 4)
+	var start := Vector2(Grid.TILE_SIZE, Grid.TILE_SIZE) / 2.0 - blast.size / 2.0
+	blast.position = start
+	blast.z_index = 1
+	add_child(blast)
+	var tween := create_tween()
+	tween.tween_property(blast, "position", start + target.position - position, BLAST_TIME)
+	await tween.finished
+	blast.queue_free()
 
 
 ## Zustossen, dann Schaden austeilen. Ohne amount zaehlt der normale Angriffswert.

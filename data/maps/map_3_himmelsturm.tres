@@ -1,0 +1,34 @@
+[gd_resource type="Resource" script_class="MapData" load_steps=11 format=3]
+
+[ext_resource type="Script" path="res://scripts/map_data.gd" id="1_map"]
+[ext_resource type="Script" path="res://scripts/round_data.gd" id="1_round"]
+[ext_resource type="Resource" path="res://data/enemies/boss_schattenkaiser.tres" id="2_boss_schattenkaiser"]
+[ext_resource type="Resource" path="res://data/enemies/flitzer.tres" id="3_flitzer"]
+[ext_resource type="Resource" path="res://data/enemies/ki_schuetze.tres" id="4_ki_schuetze"]
+[ext_resource type="Resource" path="res://data/enemies/panzer.tres" id="5_panzer"]
+[ext_resource type="Resource" path="res://data/enemies/schlaeger.tres" id="6_schlaeger"]
+
+[sub_resource type="Resource" id="round_1"]
+script = ExtResource("1_round")
+display_name = "Runde 1"
+enemies = Array[Resource]([ExtResource("3_flitzer"), ExtResource("5_panzer"), ExtResource("3_flitzer")])
+cells = Array[Vector2i]([Vector2i(15, 1), Vector2i(13, 5), Vector2i(15, 8)])
+
+[sub_resource type="Resource" id="round_2"]
+script = ExtResource("1_round")
+display_name = "Runde 2"
+enemies = Array[Resource]([ExtResource("6_schlaeger"), ExtResource("4_ki_schuetze"), ExtResource("5_panzer"), ExtResource("3_flitzer")])
+cells = Array[Vector2i]([Vector2i(12, 2), Vector2i(18, 1), Vector2i(14, 6), Vector2i(17, 8)])
+
+[sub_resource type="Resource" id="round_3"]
+script = ExtResource("1_round")
+display_name = "BOSS"
+enemies = Array[Resource]([ExtResource("2_boss_schattenkaiser")])
+cells = Array[Vector2i]([Vector2i(16, 5)])
+
+[resource]
+script = ExtResource("1_map")
+display_name = "Himmelsturm"
+floor_color_a = Color(0.169, 0.149, 0.251, 1)
+floor_color_b = Color(0.2, 0.176, 0.302, 1)
+rounds = Array[Resource]([SubResource("round_1"), SubResource("round_2"), SubResource("round_3")])

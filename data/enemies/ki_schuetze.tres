@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="EnemyData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/enemy_data.gd" id="1_enemy"]
+
+[resource]
+script = ExtResource("1_enemy")
+display_name = "Ki-Schuetze"
+max_hp = 4
+attack = 2
+color = Color(1.0, 0.541, 0.239, 1)
+behavior = 1
+attack_range = 4
