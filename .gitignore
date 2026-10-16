@@ -1,1 +1,12 @@
-godot/
+# Godot 4: Cache und importierte Dateien (werden automatisch neu erzeugt)
+.godot/
+/android/
+
+# Export-Ausgaben
+/build/
+*.tmp
+
+# Betriebssystem / Editor
+.DS_Store
+Thumbs.db
+.vscode/settings.json
