@@ -1,14 +1,18 @@
-[gd_resource type="Resource" script_class="TransformationData" load_steps=2 format=3]
+[gd_resource type="Resource" script_class="TransformationData" load_steps=4 format=3]
 
 [ext_resource type="Script" path="res://scripts/transformation_data.gd" id="1_form"]
+[ext_resource type="Texture2D" path="res://assets/sprites/helden/koloss_form.png" id="2_sprite"]
+[ext_resource type="Texture2D" path="res://assets/artworks/helden/koloss_form.png" id="3_artwork"]
 
 [resource]
 script = ExtResource("1_form")
 display_name = "Titanenherz"
 short_name = "Titan"
-description = "Riesig: Angriff +2, Ruestung +2, Aufprall +2. Jeder Treffer, den er einsteckt, bringt +2 Ki."
-aura_color = Color(1, 0.55, 0.3, 1)
-sprite_scale = 1.3
+description = "Angriff +2, Ruestung +2, Aufprall +2. Jeder Treffer, den er einsteckt, bringt +2 Ki."
+aura_color = Color(0.45, 0.95, 0.35, 1)
+sprite_scale = 1.0
+sprite_sheet = ExtResource("2_sprite")
+artwork = ExtResource("3_artwork")
 bonus_attack = 2
 bonus_armor = 2
 bonus_slam = 2

@@ -1,6 +1,8 @@
-[gd_resource type="Resource" script_class="TransformationData" load_steps=2 format=3]
+[gd_resource type="Resource" script_class="TransformationData" load_steps=4 format=3]
 
 [ext_resource type="Script" path="res://scripts/transformation_data.gd" id="1_form"]
+[ext_resource type="Texture2D" path="res://assets/sprites/helden/techniker_form.png" id="2_sprite"]
+[ext_resource type="Texture2D" path="res://assets/artworks/helden/techniker_form.png" id="3_artwork"]
 
 [resource]
 script = ExtResource("1_form")
@@ -8,7 +10,9 @@ display_name = "Spiegelgeist"
 short_name = "Spiegel"
 description = "Konter +3 und wirft auch Ki-Schuesse zurueck. Jeder Konter bringt +3 Ki."
 aura_color = Color(0.62, 0.9, 1, 1)
-sprite_scale = 1.1
+sprite_scale = 1.0
+sprite_sheet = ExtResource("2_sprite")
+artwork = ExtResource("3_artwork")
 bonus_attack = 1
 bonus_counter = 3
 counter_ranged = true

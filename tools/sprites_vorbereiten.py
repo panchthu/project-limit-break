@@ -26,6 +26,10 @@ HOEHEN = {
     "helden/techniker": 32,
     "helden/koloss": 34,
     "helden/ki_akrobat": 31,
+    # Verwandlungen (M7): Aura und Haare machen das Bild hoeher, der Koerper bleibt gleich gross.
+    "helden/techniker_form": 37,
+    "helden/koloss_form": 37,
+    "helden/ki_akrobat_form": 36,
     "gegner/schlaeger": 30,
     "gegner/ki_schuetze": 28,
     "gegner/panzer": 31,

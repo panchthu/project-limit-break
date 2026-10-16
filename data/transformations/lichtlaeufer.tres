@@ -1,14 +1,18 @@
-[gd_resource type="Resource" script_class="TransformationData" load_steps=2 format=3]
+[gd_resource type="Resource" script_class="TransformationData" load_steps=4 format=3]
 
 [ext_resource type="Script" path="res://scripts/transformation_data.gd" id="1_form"]
+[ext_resource type="Texture2D" path="res://assets/sprites/helden/ki_akrobat_form.png" id="2_sprite"]
+[ext_resource type="Texture2D" path="res://assets/artworks/helden/ki_akrobat_form.png" id="3_artwork"]
 
 [resource]
 script = ExtResource("1_form")
 display_name = "Lichtlaeufer"
 short_name = "Licht"
 description = "Schlaege durchbohren die ganze Linie, +2 Reichweite, +25% Ausweichen. Ausweichen bringt +3 Ki."
-aura_color = Color(1, 0.95, 0.55, 1)
-sprite_scale = 1.1
+aura_color = Color(0.75, 0.88, 1, 1)
+sprite_scale = 1.0
+sprite_sheet = ExtResource("2_sprite")
+artwork = ExtResource("3_artwork")
 bonus_range = 2
 bonus_dodge = 0.25
 piercing = true

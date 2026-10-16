@@ -25,8 +25,13 @@ enum Refuel {
 @export var short_name := ""
 ## Erklaerung fuer den Erwachen-Bildschirm (2 bis 3 kurze Zeilen).
 @export var description := ""
-## Farbe von Aura und Toenung.
+## Farbe von Aura, Funken und Ki-Leiste.
 @export var aura_color := Color("ffe08a")
+## Eigene Posen der verwandelten Figur (wie FighterData.sprite_sheet). Ohne Bild wird das
+## normale Sprite in Aura-Farbe getoent.
+@export var sprite_sheet: Texture2D
+## Grosses Bild fuer den Erwachen-Bildschirm und das Ergebnis (120 x 160).
+@export var artwork: Texture2D
 ## Die Figur wird so viel groesser.
 @export var sprite_scale := 1.0
 

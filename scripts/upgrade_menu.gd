@@ -58,19 +58,20 @@ func awaken(fighter: FighterData) -> void:
 	_aura_color = form.aura_color
 	_artwork_rect = Rect2(24, 14, 96, 128)
 	var picture := TextureRect.new()
-	picture.texture = fighter.artwork
+	picture.texture = form.artwork if form.artwork else fighter.artwork
 	picture.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	picture.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	picture.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
 	picture.position = _artwork_rect.position
 	picture.size = _artwork_rect.size
-	picture.modulate = form.aura_color.lerp(Color.WHITE, 0.5)
+	if not form.artwork:
+		picture.modulate = form.aura_color.lerp(Color.WHITE, 0.5)
 	_root.add_child(picture)
 	_add_label("ERWACHEN!", Rect2(132, 14, 180, 20), 16, GOLD)
 	_add_label(form.display_name, Rect2(132, 36, 180, 16), 12, form.aura_color)
 	_add_label(form.description, Rect2(132, 56, 180, 40), 8, Color.WHITE)
 	_add_label("T bei voller Ki-Leiste: verwandeln.\nKostet %d Ki pro Zug, Aufladen geht dann nicht.\nBei 0 Ki ist es vorbei." % form.ki_drain,
-		Rect2(132, 98, 180, 34), 8, MUTED)
+		Rect2(132, 104, 180, 34), 8, MUTED)
 	_add_label("Deine Ki-Leiste ist voll. Enter = zum Endboss", Rect2(0, 158, 320, 12), 8, GOLD, HORIZONTAL_ALIGNMENT_CENTER)
 	await _show_and_wait()
 

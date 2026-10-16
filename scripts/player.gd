@@ -64,8 +64,12 @@ func transform() -> void:
 	form = fighter.transformation
 	Game.transformed_once = true
 	refresh_stats()
+	if form.sprite_sheet:
+		_swap_sheet(form.sprite_sheet)
+		set_look(Color.WHITE, form.sprite_scale)
+	else:
+		set_look(form.aura_color.lerp(Color.WHITE, 0.45), form.sprite_scale)
 	set_pose(Pose.SPEZIAL)
-	set_look(form.aura_color.lerp(Color.WHITE, 0.45), form.sprite_scale)
 	modulate = form.aura_color * 2.0
 	var tween := create_tween()
 	tween.tween_property(self, "modulate", Color.WHITE, 0.5)
@@ -75,9 +79,19 @@ func transform() -> void:
 
 ## Verwandlung endet (Ki ist leer).
 func revert() -> void:
+	if form.sprite_sheet:
+		_swap_sheet(fighter.sprite_sheet)
 	form = null
 	refresh_stats()
 	set_look(Color.WHITE, 1.0)
+
+
+## Anderes Posen-Bild, die Figur schaut weiter in dieselbe Richtung.
+func _swap_sheet(texture: Texture2D) -> void:
+	var looks_left := _looks_left
+	set_sprite(texture, Pose.size(), false)
+	_looks_left = looks_left
+	_update_flip()
 
 
 func attack_range() -> int:
@@ -299,8 +313,10 @@ func _dodge_from(attacker: Unit) -> void:
 
 
 func _die() -> void:
+	# Mit eigenen Posen faellt er verwandelt um, sonst verschwindet die Toenung.
+	if form and not form.sprite_sheet:
+		set_look(Color.WHITE, 1.0)
 	form = null
-	set_look(Color.WHITE, 1.0)
 	modulate = Color(0.6, 0.6, 0.6)
 	super()
 
@@ -330,7 +346,8 @@ func _draw_aura() -> void:
 	var width := sprite_width() * form.sprite_scale
 	var pulse := sin(_aura_time * 8.0) * 1.5
 	var middle := Vector2(s / 2.0, s - height * 0.42)
-	for i in 3:
+	# Mit eigenen Posen ist die Aura schon im Bild, dann nur Funken und Ring.
+	for i in (0 if form.sprite_sheet else 3):
 		var grow := 1.0 + i * 0.18
 		var radius := Vector2(width * 0.34 + pulse, height * 0.5 + pulse) * grow
 		draw_set_transform(middle, 0.0, radius / 10.0)

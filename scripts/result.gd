@@ -21,6 +21,9 @@ func _ready() -> void:
 		Game.fighter().display_name, Game.map_index + 1, Game.MAPS.size(), Game.last_run_turns,
 		Game.run_upgrades.size()]
 	if Game.transformed_once:
+		var form := Game.fighter().transformation
+		if form.artwork:
+			artwork.texture = form.artwork
 		lines += "  -  %s" % Game.fighter().transformation.display_name
 	info_label.text = lines
 
