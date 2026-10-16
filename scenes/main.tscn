@@ -1,26 +1,23 @@
-[gd_scene load_steps=4 format=3]
+[gd_scene load_steps=3 format=3]
 
 [ext_resource type="Script" path="res://scripts/main.gd" id="1_main"]
 [ext_resource type="PackedScene" path="res://scenes/player.tscn" id="2_player"]
-[ext_resource type="PackedScene" path="res://scenes/enemy.tscn" id="3_enemy"]
 
 [node name="Main" type="Node2D"]
 script = ExtResource("1_main")
 
 [node name="Player" parent="." instance=ExtResource("2_player")]
 
-[node name="Enemy" parent="." instance=ExtResource("3_enemy")]
-
 [node name="StatusLabel" type="Label" parent="."]
 offset_left = 4.0
 offset_top = 162.0
-offset_right = 160.0
+offset_right = 200.0
 offset_bottom = 180.0
 theme_override_font_sizes/font_size = 12
-text = "HP 10/10   Zug 0"
+text = "HP 20/20"
 
 [node name="MessageLabel" type="Label" parent="."]
-offset_left = 160.0
+offset_left = 200.0
 offset_top = 162.0
 offset_right = 316.0
 offset_bottom = 180.0

@@ -13,7 +13,7 @@ Rundenbasierter 2D-Roguelike im Retro-Anime-Stil. Godot 4 (GDScript), interne Au
 
 ## Meilensteine
 1. Figur bewegt sich auf einem Raster
-2. Ein Gegner, einfacher Kampf  <- aktuell
+2. Gegner, einfacher Kampf, Runden mit Boss  <- aktuell
 3. Zufaelliger Raum / Dungeon
 4. Tod und Neustart
 5. Items, Upgrades, Kaempfer-Unterschiede, Art, Story

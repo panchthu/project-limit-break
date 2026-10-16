@@ -13,6 +13,8 @@ const MOVE_TIME := 0.12
 @export var attack := 2
 ## Platzhalter-Farbe, bis echte Pixel-Art da ist.
 @export var body_color := Color.WHITE
+## Heller Rahmen, z. B. fuer Bosse.
+@export var outlined := false
 
 var cell: Vector2i
 var hp: int
@@ -61,6 +63,11 @@ func take_damage(amount: int) -> void:
 		_die()
 
 
+func heal_full() -> void:
+	hp = max_hp
+	queue_redraw()
+
+
 func face(dir: Vector2i) -> void:
 	if dir != Vector2i.ZERO:
 		facing = dir
@@ -75,6 +82,8 @@ func _die() -> void:
 func _draw() -> void:
 	var s := Grid.TILE_SIZE
 	draw_rect(Rect2(2, 3, s - 4, s - 5), body_color)
+	if outlined:
+		draw_rect(Rect2(1.5, 2.5, s - 3, s - 4), Color("ffe08a"), false, 1.0)
 	# Kleiner Punkt zeigt die Blickrichtung.
 	var center := Vector2(s, s + 1) / 2.0
 	var eye := center + Vector2(facing) * 4.0 - Vector2(1, 1)

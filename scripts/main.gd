@@ -1,6 +1,22 @@
 extends Node2D
 ## Hauptszene: zeichnet den Boden, richtet die Tasten ein und steuert die Zuege.
 ## Ablauf: Spieler handelt (laufen oder angreifen), danach handelt jeder Gegner.
+## Die Map besteht aus Runden: sind alle Gegner einer Runde besiegt, startet die naechste.
+
+const ENEMY_SCENE := preload("res://scenes/enemy.tscn")
+const BOSS_SCENE := preload("res://scenes/boss.tscn")
+
+## Runden dieser Map: welche Gegner wo auftauchen.
+const ROUNDS := [
+	{"name": "Runde 1", "spawns": [
+		{"scene": ENEMY_SCENE, "cell": Vector2i(14, 2)},
+		{"scene": ENEMY_SCENE, "cell": Vector2i(16, 5)},
+		{"scene": ENEMY_SCENE, "cell": Vector2i(13, 8)},
+	]},
+	{"name": "BOSS", "spawns": [
+		{"scene": BOSS_SCENE, "cell": Vector2i(17, 5)},
+	]},
+]
 
 ## Tastenbelegung (WASD und Pfeiltasten, R fuer Neustart).
 const KEYS := {
@@ -12,6 +28,7 @@ const KEYS := {
 }
 
 var turn := 0
+var round_index := 0
 ## Waehrend ein Zug abgespielt wird, keine neue Eingabe.
 var _busy := false
 var _game_over := false
@@ -24,9 +41,18 @@ var _game_over := false
 func _ready() -> void:
 	_setup_input()
 	player.died.connect(_on_player_died)
-	for enemy: Unit in _enemies():
+	_start_round(0)
+
+
+func _start_round(index: int) -> void:
+	round_index = index
+	var round_data: Dictionary = ROUNDS[index]
+	for spawn: Dictionary in round_data.spawns:
+		var enemy: Unit = spawn.scene.instantiate()
+		enemy.start_cell = spawn.cell
 		enemy.died.connect(_on_enemy_died)
-	_update_status()
+		add_child(enemy)
+	_show_message("%s!" % round_data.name)
 
 
 func _setup_input() -> void:
@@ -62,7 +88,8 @@ func _take_turn(dir: Vector2i) -> void:
 	_busy = true
 	if enemy:
 		await player.attack_unit(enemy)
-		_show_message("Treffer! -%d" % player.attack)
+		if enemy.is_alive():
+			_show_message("Treffer! -%d" % player.attack)
 	else:
 		await player.move_to(target)
 	await _enemy_turn()
@@ -102,7 +129,14 @@ func _is_free(cell: Vector2i) -> bool:
 
 func _on_enemy_died() -> void:
 	# Der sterbende Gegner hat die Gruppe schon verlassen.
-	if _enemies().is_empty():
+	if not _enemies().is_empty():
+		_show_message("Gegner besiegt!")
+		return
+	if round_index + 1 < ROUNDS.size():
+		# Zwischen den Runden sammelt der Kaempfer neue Kraft.
+		player.heal_full()
+		_start_round(round_index + 1)
+	else:
 		_end_game("Gewonnen! R = neu")
 
 
@@ -116,7 +150,7 @@ func _end_game(text: String) -> void:
 
 
 func _update_status() -> void:
-	status_label.text = "HP %d/%d   Zug %d" % [player.hp, player.max_hp, turn]
+	status_label.text = "HP %d/%d  %s  Zug %d" % [player.hp, player.max_hp, ROUNDS[round_index].name, turn]
 
 
 func _show_message(text: String) -> void:

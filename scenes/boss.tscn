@@ -1,0 +1,9 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="PackedScene" path="res://scenes/enemy.tscn" id="1_enemy"]
+
+[node name="Boss" instance=ExtResource("1_enemy")]
+max_hp = 15
+attack = 3
+body_color = Color(0.584, 0.333, 0.851, 1)
+outlined = true
