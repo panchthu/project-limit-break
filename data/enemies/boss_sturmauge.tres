@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="EnemyData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/enemy_data.gd" id="1_enemy"]
+
+[resource]
+script = ExtResource("1_enemy")
+display_name = "Sturmauge"
+max_hp = 20
+attack = 3
+color = Color(0.247, 0.722, 0.659, 1)
+behavior = 1
+attack_range = 5
+is_boss = true
+special_name = "Sturmkreuz"
+special_pattern = 2
+special_damage = 6
+special_every = 3

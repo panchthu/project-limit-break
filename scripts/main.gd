@@ -2,22 +2,10 @@ extends Node2D
 ## Hauptszene: zeichnet den Boden, richtet die Tasten ein und steuert die Zuege.
 ## Ablauf: Spieler handelt (laufen, angreifen, Ki aufladen oder eine Technik), danach handelt jeder Gegner.
 ## Eine Aktion pro Zug. Techniken kosten Ki, Aufladen und normale Treffer bringen Ki.
-## Die Map besteht aus Runden: sind alle Gegner einer Runde besiegt, startet die naechste.
+## Ein Run besteht aus mehreren Maps (Game.MAPS), jede Map aus Runden (data/maps/*.tres).
+## Sind alle Gegner einer Runde besiegt, startet die naechste; nach dem Boss kommt die naechste Map.
 
 const ENEMY_SCENE := preload("res://scenes/enemy.tscn")
-const BOSS_SCENE := preload("res://scenes/boss.tscn")
-
-## Runden dieser Map: welche Gegner wo auftauchen.
-const ROUNDS := [
-	{"name": "Runde 1", "spawns": [
-		{"scene": ENEMY_SCENE, "cell": Vector2i(14, 2)},
-		{"scene": ENEMY_SCENE, "cell": Vector2i(16, 5)},
-		{"scene": ENEMY_SCENE, "cell": Vector2i(13, 8)},
-	]},
-	{"name": "BOSS", "spawns": [
-		{"scene": BOSS_SCENE, "cell": Vector2i(17, 5)},
-	]},
-]
 
 ## Tastennamen der Techniken fuer die Anzeige (passend zu Game.KEYS).
 const TECHNIQUE_KEYS := ["Q", "E"]
@@ -27,15 +15,20 @@ const KI_BAR_COLOR := Color("8fe8ff")
 const BAR_BG_COLOR := Color("1d1a2f")
 const BAR_RECT_HP := Rect2(4, 163, 52, 4)
 const BAR_RECT_KI := Rect2(4, 171, 52, 4)
+## Markierte Felder einer angekuendigten Boss-Attacke.
+const WARNING_COLOR := Color(1, 0.25, 0.2, 0.45)
 
 ## Kurze Pause nach Sieg oder Niederlage, bevor der Ergebnis-Bildschirm kommt.
 const END_DELAY := 1.2
 
 var turn := 0
+var map: MapData
 var round_index := 0
 ## Waehrend ein Zug abgespielt wird, keine neue Eingabe.
 var _busy := false
 var _game_over := false
+## Zwischen zwei Maps keine Eingabe.
+var _between_maps := false
 ## Technik, fuer die gerade eine Richtung gewaehlt wird (null = keine).
 var _aiming: TechniqueData = null
 
@@ -50,22 +43,29 @@ func _ready() -> void:
 	player.setup(Game.fighter())
 	player.died.connect(_on_player_died)
 	player.ki_changed.connect(_update_status)
+	_start_map(0)
+
+
+func _start_map(index: int) -> void:
+	Game.map_index = index
+	map = Game.MAPS[index]
 	_start_round(0)
+	_show_message("%s - %s!" % [map.display_name, map.rounds[0].display_name])
 
 
 func _start_round(index: int) -> void:
 	round_index = index
-	var round_data: Dictionary = ROUNDS[index]
-	for spawn: Dictionary in round_data.spawns:
-		var enemy: Unit = spawn.scene.instantiate()
-		enemy.start_cell = spawn.cell
+	var round_data: RoundData = map.rounds[index]
+	for i in round_data.enemies.size():
+		var enemy: Enemy = ENEMY_SCENE.instantiate()
+		enemy.setup(round_data.enemies[i], round_data.cells[i])
 		enemy.died.connect(_on_enemy_died)
 		add_child(enemy)
-	_show_message("%s!" % round_data.name)
+	_show_message("%s!" % round_data.display_name)
 
 
 func _process(_delta: float) -> void:
-	if _game_over or _busy:
+	if _game_over or _busy or _between_maps:
 		return
 	if _aiming:
 		_process_aiming()
@@ -247,12 +247,9 @@ func _enemy_turn() -> void:
 		# Ein Konter kann Gegner mitten im Gegnerzug besiegen.
 		if not is_instance_valid(enemy) or not enemy.is_alive():
 			continue
-		if _distance(player.cell, enemy.cell) == 1:
-			_show_message(await player.defend(enemy))
-		else:
-			var step: Vector2i = enemy.next_step(player.cell, _is_free)
-			if step != Vector2i.ZERO:
-				await enemy.move_to(enemy.cell + step)
+		var text: String = await enemy.take_turn(player, _is_free)
+		if text != "":
+			_show_message(text)
 
 
 func _enemies() -> Array[Node]:
@@ -336,12 +333,25 @@ func _on_enemy_died() -> void:
 	if not _enemies().is_empty():
 		_show_message("Gegner besiegt!")
 		return
-	if round_index + 1 < ROUNDS.size():
-		# Zwischen den Runden sammelt der Kaempfer neue Kraft.
-		player.heal_full()
+	# Zwischen den Runden sammelt der Kaempfer neue Kraft.
+	player.heal_full()
+	if round_index + 1 < map.rounds.size():
 		_start_round(round_index + 1)
+	elif Game.map_index + 1 < Game.MAPS.size():
+		_start_next_map()
 	else:
 		_end_game(true, "Gewonnen!")
+
+
+## Map geschafft: kurz durchatmen, Spieler zurueck an den Start, naechste Map.
+func _start_next_map() -> void:
+	_between_maps = true
+	_show_message("Map geschafft!")
+	await get_tree().create_timer(END_DELAY).timeout
+	player.face(Vector2i.DOWN)
+	await player.slide_to(player.start_cell, 0.2)
+	_start_map(Game.map_index + 1)
+	_between_maps = false
 
 
 func _on_player_died() -> void:
@@ -357,7 +367,7 @@ func _end_game(won: bool, text: String) -> void:
 
 func _update_status() -> void:
 	status_label.text = "HP %d/%d  Ki %d/%d" % [player.hp, player.max_hp, player.ki, player.max_ki]
-	round_label.text = "%s  Zug %d" % [ROUNDS[round_index].name, turn]
+	round_label.text = "M%d %s  Zug %d" % [Game.map_index + 1, map.rounds[round_index].display_name, turn]
 	var parts: PackedStringArray = []
 	for i in player.fighter.techniques.size():
 		var technique: TechniqueData = player.fighter.techniques[i]
@@ -375,13 +385,16 @@ func _show_message(text: String) -> void:
 	_update_status()
 
 
-## Schachbrett-Boden als Platzhalter.
+## Schachbrett-Boden als Platzhalter (Farben aus der Map) und Warnfelder der Bosse.
 func _draw() -> void:
 	var s := Grid.TILE_SIZE
 	for y in Grid.HEIGHT:
 		for x in Grid.WIDTH:
-			var color := Color("2b2640") if (x + y) % 2 == 0 else Color("332d4d")
+			var color := map.floor_color_a if (x + y) % 2 == 0 else map.floor_color_b
 			draw_rect(Rect2(x * s, y * s, s, s), color)
+	for enemy: Enemy in _enemies():
+		for cell in enemy.warned_cells:
+			draw_rect(Rect2(cell * s, Vector2(s, s)), WARNING_COLOR)
 	_draw_bar(BAR_RECT_HP, player.hp, player.max_hp, HP_BAR_COLOR, 0)
 	_draw_bar(BAR_RECT_KI, player.ki, player.max_ki, KI_BAR_COLOR, player.max_ki)
 

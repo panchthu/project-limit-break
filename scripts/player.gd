@@ -4,9 +4,10 @@ extends Unit
 ## gewaehlten Kaempfers um. Wann gelaufen oder angegriffen wird,
 ## entscheidet die Hauptszene, weil sie die Zuege verwaltet.
 
-## Farbe und Flugzeit des Ki-Strahls.
+## Farbe des Ki-Strahls.
 const KI_BLAST_COLOR := Color("aef3ff")
-const KI_BLAST_TIME := 0.15
+## Farbe der Ki-Schuesse der Gegner.
+const ENEMY_BLAST_COLOR := Color("ff8a6b")
 ## Flugzeit pro Feld, wenn ein Gegner geworfen wird.
 const THROW_TIME_PER_CELL := 0.06
 ## Farbe der Ki-Aura beim Aufladen.
@@ -87,18 +88,7 @@ func read_direction(just := false) -> Vector2i:
 
 ## Ki-Strahl: ein Lichtball fliegt zum Ziel, dann gibt es Schaden.
 func shoot(target: Unit, amount := -1) -> void:
-	face((target.cell - cell).sign())
-	var blast := ColorRect.new()
-	blast.color = KI_BLAST_COLOR
-	blast.size = Vector2(4, 4)
-	var start := Vector2(Grid.TILE_SIZE, Grid.TILE_SIZE) / 2.0 - blast.size / 2.0
-	blast.position = start
-	blast.z_index = 1
-	add_child(blast)
-	var tween := create_tween()
-	tween.tween_property(blast, "position", start + target.position - position, KI_BLAST_TIME)
-	await tween.finished
-	blast.queue_free()
+	await fire_blast(target, KI_BLAST_COLOR)
 	target.take_damage(attack if amount < 0 else amount)
 
 
@@ -162,10 +152,16 @@ func throw_unit(target: Unit, is_free: Callable, distance := -1, slam := -1, dir
 
 
 ## Ein Gegner greift an. Hier wirken Haltungen, Ausweichen, Super-Armor und Konter.
+## ranged = Ki-Schuss aus der Ferne (dann gibt es keinen Konter).
 ## Gibt den Text fuer die Meldungszeile zurueck.
-func defend(attacker: Unit) -> String:
-	await attacker.lunge_at(self)
+func defend(attacker: Unit, ranged := false) -> String:
+	if ranged:
+		await attacker.fire_blast(self, ENEMY_BLAST_COLOR)
+	else:
+		await attacker.lunge_at(self)
 	if counter_stance > 0:
+		if ranged:
+			return "Geblockt!"
 		await attack_unit(attacker, counter_stance)
 		return "Geblockt!  Konter! -%d" % counter_stance
 	if sure_dodge or randf() < fighter.dodge_chance:
@@ -173,11 +169,23 @@ func defend(attacker: Unit) -> String:
 		return "Ausgewichen!"
 	var damage: int = max(attacker.attack - fighter.armor, 1)
 	take_damage(damage)
-	var text := "Autsch! -%d" % damage
-	if fighter.counter_damage > 0 and is_alive() and attacker.is_alive():
+	var text := ("Ki-Schuss! -%d" if ranged else "Autsch! -%d") % damage
+	if fighter.counter_damage > 0 and not ranged and is_alive() and attacker.is_alive():
 		await attack_unit(attacker, fighter.counter_damage)
 		text += "  Konter! -%d" % fighter.counter_damage
 	return text
+
+
+## Spezialattacke eines Bosses trifft. Nur Haltungen helfen noch, Super-Armor zieht ab.
+func take_special(attacker: Unit, amount: int) -> String:
+	if counter_stance > 0:
+		return "Geblockt!"
+	if sure_dodge:
+		await _dodge_from(attacker)
+		return "Ausgewichen!"
+	var damage: int = max(amount - fighter.armor, 1)
+	take_damage(damage)
+	return "Volltreffer! -%d" % damage
 
 
 ## Kurzer Seitenschritt weg vom Angreifer und zurueck.

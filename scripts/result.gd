@@ -13,7 +13,8 @@ func _ready() -> void:
 	else:
 		headline_label.text = "GAME OVER"
 		headline_label.modulate = Color("d94d6b")
-	info_label.text = "%s  -  %d Zuege" % [Game.fighter().display_name, Game.last_run_turns]
+	info_label.text = "%s  -  Map %d/%d  -  %d Zuege" % [
+		Game.fighter().display_name, Game.map_index + 1, Game.MAPS.size(), Game.last_run_turns]
 
 
 func _process(_delta: float) -> void:

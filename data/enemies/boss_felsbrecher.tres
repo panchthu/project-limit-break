@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="EnemyData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/enemy_data.gd" id="1_enemy"]
+
+[resource]
+script = ExtResource("1_enemy")
+display_name = "Felsbrecher"
+max_hp = 18
+attack = 3
+color = Color(0.69, 0.478, 0.271, 1)
+is_boss = true
+special_name = "Bodenschlag"
+special_pattern = 1
+special_size = 1
+special_damage = 6
+special_every = 3

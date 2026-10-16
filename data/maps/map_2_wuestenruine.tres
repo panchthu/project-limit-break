@@ -1,0 +1,33 @@
+[gd_resource type="Resource" script_class="MapData" load_steps=10 format=3]
+
+[ext_resource type="Script" path="res://scripts/map_data.gd" id="1_map"]
+[ext_resource type="Script" path="res://scripts/round_data.gd" id="1_round"]
+[ext_resource type="Resource" path="res://data/enemies/boss_sturmauge.tres" id="2_boss_sturmauge"]
+[ext_resource type="Resource" path="res://data/enemies/ki_schuetze.tres" id="3_ki_schuetze"]
+[ext_resource type="Resource" path="res://data/enemies/panzer.tres" id="4_panzer"]
+[ext_resource type="Resource" path="res://data/enemies/schlaeger.tres" id="5_schlaeger"]
+
+[sub_resource type="Resource" id="round_1"]
+script = ExtResource("1_round")
+display_name = "Runde 1"
+enemies = Array[Resource]([ExtResource("5_schlaeger"), ExtResource("3_ki_schuetze"), ExtResource("5_schlaeger")])
+cells = Array[Vector2i]([Vector2i(13, 3), Vector2i(18, 5), Vector2i(13, 7)])
+
+[sub_resource type="Resource" id="round_2"]
+script = ExtResource("1_round")
+display_name = "Runde 2"
+enemies = Array[Resource]([ExtResource("4_panzer"), ExtResource("3_ki_schuetze"), ExtResource("3_ki_schuetze")])
+cells = Array[Vector2i]([Vector2i(12, 5), Vector2i(17, 1), Vector2i(17, 8)])
+
+[sub_resource type="Resource" id="round_3"]
+script = ExtResource("1_round")
+display_name = "BOSS"
+enemies = Array[Resource]([ExtResource("2_boss_sturmauge")])
+cells = Array[Vector2i]([Vector2i(17, 5)])
+
+[resource]
+script = ExtResource("1_map")
+display_name = "Wuestenruine"
+floor_color_a = Color(0.29, 0.231, 0.157, 1)
+floor_color_b = Color(0.329, 0.267, 0.188, 1)
+rounds = Array[Resource]([SubResource("round_1"), SubResource("round_2"), SubResource("round_3")])
