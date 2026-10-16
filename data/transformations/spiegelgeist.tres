@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="TransformationData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/transformation_data.gd" id="1_form"]
+
+[resource]
+script = ExtResource("1_form")
+display_name = "Spiegelgeist"
+short_name = "Spiegel"
+description = "Konter +3 und wirft auch Ki-Schuesse zurueck. Jeder Konter bringt +3 Ki."
+aura_color = Color(0.62, 0.9, 1, 1)
+sprite_scale = 1.1
+bonus_attack = 1
+bonus_counter = 3
+counter_ranged = true
+ki_drain = 2
+refuel = 0
+refuel_amount = 3
+burst_damage = 2

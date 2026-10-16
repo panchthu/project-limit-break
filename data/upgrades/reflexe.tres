@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/upgrade_data.gd" id="1_upgrade"]
+
+[resource]
+script = ExtResource("1_upgrade")
+display_name = "Reflexe"
+description = "+10% Chance, Angriffen auszuweichen"
+stat = 8
+amount = 10
+max_picks = 3
+weight = 2
+color = Color(0.424, 0.827, 0.424, 1)

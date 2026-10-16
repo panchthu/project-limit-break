@@ -17,8 +17,12 @@ func _ready() -> void:
 		headline_label.modulate = Color("d94d6b")
 		# Bei einer Niederlage steht der Kaempfer im Schatten.
 		artwork.modulate = Color(0.45, 0.4, 0.55)
-	info_label.text = "%s\nMap %d/%d  -  %d Zuege" % [
-		Game.fighter().display_name, Game.map_index + 1, Game.MAPS.size(), Game.last_run_turns]
+	var lines := "%s\nMap %d/%d  -  %d Zuege\n%d Upgrades" % [
+		Game.fighter().display_name, Game.map_index + 1, Game.MAPS.size(), Game.last_run_turns,
+		Game.run_upgrades.size()]
+	if Game.transformed_once:
+		lines += "  -  %s" % Game.fighter().transformation.display_name
+	info_label.text = lines
 
 
 func _process(_delta: float) -> void:

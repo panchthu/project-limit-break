@@ -3,6 +3,7 @@ extends Unit
 ## Spielfigur. Liest die Eingabe und setzt die Spezialfaehigkeiten des
 ## gewaehlten Kaempfers um. Wann gelaufen oder angegriffen wird,
 ## entscheidet die Hauptszene, weil sie die Zuege verwaltet.
+## Die Werte kommen aus dem Kaempfer des Runs (mit Upgrades) plus der Verwandlung, falls aktiv.
 
 ## Farbe des Ki-Strahls.
 const KI_BLAST_COLOR := Color("aef3ff")
@@ -23,19 +24,91 @@ var max_ki := 10
 var counter_stance := 0
 ## Nachbild: im naechsten Gegnerzug weicht er jedem Angriff aus.
 var sure_dodge := false
+## Aktive Verwandlung (null = normal).
+var form: TransformationData = null
+## Laufende Zeit fuer das Flackern der Aura.
+var _aura_time := 0.0
 
 
 ## Werte des gewaehlten Kaempfers uebernehmen.
 func setup(data: FighterData) -> void:
 	fighter = data
-	max_hp = data.max_hp
-	attack = data.attack
 	body_color = data.color
 	set_sprite(data.sprite_sheet, Pose.size(), false)
-	max_ki = data.max_ki
+	refresh_stats()
 	heal_full()
 	set_ki(data.start_ki)
 
+
+## Werte neu aus den Daten holen (nach einem Upgrade oder beim Verwandeln).
+func refresh_stats() -> void:
+	max_hp = fighter.max_hp
+	attack = fighter.attack + (form.bonus_attack if form else 0)
+	max_ki = fighter.max_ki
+	hp = min(hp, max_hp)
+	set_ki(ki)
+
+
+func is_transformed() -> bool:
+	return form != null
+
+
+## Verwandeln geht, wenn sie erwacht ist, die Ki-Leiste voll ist und er nicht schon verwandelt ist.
+func can_transform() -> bool:
+	return Game.transformation_unlocked and fighter.transformation != null \
+		and not is_transformed() and ki >= max_ki
+
+
+## Verwandlung beginnt: Aura, Toenung, Groesse und Bonuswerte.
+func transform() -> void:
+	form = fighter.transformation
+	Game.transformed_once = true
+	refresh_stats()
+	set_pose(Pose.SPEZIAL)
+	set_look(form.aura_color.lerp(Color.WHITE, 0.45), form.sprite_scale)
+	modulate = form.aura_color * 2.0
+	var tween := create_tween()
+	tween.tween_property(self, "modulate", Color.WHITE, 0.5)
+	await tween.finished
+	_back_to_idle()
+
+
+## Verwandlung endet (Ki ist leer).
+func revert() -> void:
+	form = null
+	refresh_stats()
+	set_look(Color.WHITE, 1.0)
+
+
+func attack_range() -> int:
+	return fighter.attack_range + (form.bonus_range if form else 0)
+
+
+func armor() -> int:
+	return fighter.armor + (form.bonus_armor if form else 0)
+
+
+func counter_damage() -> int:
+	return fighter.counter_damage + (form.bonus_counter if form else 0)
+
+
+func dodge_chance() -> float:
+	return fighter.dodge_chance + (form.bonus_dodge if form else 0.0)
+
+
+func slam_damage() -> int:
+	return fighter.throw_slam_damage + (form.bonus_slam if form else 0)
+
+
+## Ki-Kosten einer Technik nach Upgrades (mindestens 1).
+func technique_cost(technique: TechniqueData) -> int:
+	return maxi(technique.ki_cost - fighter.technique_discount, 1)
+
+
+## Spielt er gerade seinen Stil, bekommt die Verwandlung Ki zurueck.
+func _refuel(kind: TransformationData.Refuel) -> void:
+	if form and form.refuel == kind:
+		gain_ki(form.refuel_amount)
 
 func set_ki(value: int) -> void:
 	ki = clampi(value, 0, max_ki)
@@ -47,7 +120,7 @@ func gain_ki(amount: int) -> void:
 
 
 func can_afford(technique: TechniqueData) -> bool:
-	return ki >= technique.ki_cost
+	return ki >= technique_cost(technique)
 
 
 ## Haltungen gelten nur fuer einen Gegnerzug.
@@ -146,7 +219,7 @@ func throw_unit(target: Unit, is_free: Callable, distance := -1, slam := -1, dir
 	if distance < 0:
 		distance = fighter.throw_distance
 	if slam < 0:
-		slam = fighter.throw_slam_damage
+		slam = slam_damage()
 	if dir == Vector2i.ZERO:
 		dir = facing
 	var landing := target.cell
@@ -175,16 +248,27 @@ func defend(attacker: Unit, ranged := false) -> String:
 		if ranged:
 			return "Geblockt!"
 		await attack_unit(attacker, counter_stance)
+		_refuel(TransformationData.Refuel.KONTER)
 		return "Geblockt!  Konter! -%d" % counter_stance
-	if sure_dodge or randf() < fighter.dodge_chance:
+	if sure_dodge or randf() < dodge_chance():
 		await _dodge_from(attacker)
+		_refuel(TransformationData.Refuel.AUSWEICHEN)
 		return "Ausgewichen!"
-	var damage: int = max(attacker.attack - fighter.armor, 1)
+	var damage: int = max(attacker.attack - armor(), 1)
 	take_damage(damage)
+	_refuel(TransformationData.Refuel.TREFFER)
 	var text := ("Ki-Schuss! -%d" if ranged else "Autsch! -%d") % damage
-	if fighter.counter_damage > 0 and not ranged and is_alive() and attacker.is_alive():
-		await attack_unit(attacker, fighter.counter_damage)
-		text += "  Konter! -%d" % fighter.counter_damage
+	var counter := counter_damage()
+	if counter > 0 and is_alive() and attacker.is_alive():
+		if not ranged:
+			await attack_unit(attacker, counter)
+		elif form and form.counter_ranged:
+			# Spiegelgeist wirft den Ki-Schuss zurueck.
+			await shoot(attacker, counter)
+		else:
+			return text
+		_refuel(TransformationData.Refuel.KONTER)
+		text += "  Konter! -%d" % counter
 	return text
 
 
@@ -195,8 +279,9 @@ func take_special(attacker: Unit, amount: int) -> String:
 	if sure_dodge:
 		await _dodge_from(attacker)
 		return "Ausgewichen!"
-	var damage: int = max(amount - fighter.armor, 1)
+	var damage: int = max(amount - armor(), 1)
 	take_damage(damage)
+	_refuel(TransformationData.Refuel.TREFFER)
 	return "Volltreffer! -%d" % damage
 
 
@@ -214,11 +299,21 @@ func _dodge_from(attacker: Unit) -> void:
 
 
 func _die() -> void:
+	form = null
+	set_look(Color.WHITE, 1.0)
 	modulate = Color(0.6, 0.6, 0.6)
 	super()
 
 
+func _process(delta: float) -> void:
+	if form:
+		_aura_time += delta
+		queue_redraw()
+
+
 func _draw() -> void:
+	if form:
+		_draw_aura()
 	super()
 	# Aktive Haltung als Ki-Ring um die Fuesse.
 	if counter_stance > 0 or sure_dodge:
@@ -226,3 +321,28 @@ func _draw() -> void:
 		draw_set_transform(Vector2(s / 2.0, s - 1.0), 0.0, Vector2(1.0, 0.35))
 		draw_arc(Vector2.ZERO, 10.0, 0.0, TAU, 24, KI_AURA_COLOR, 1.0)
 		draw_set_transform(Vector2.ZERO)
+
+
+## Flackernde Aura hinter der Figur (wird vor dem Bild gezeichnet) und aufsteigende Funken.
+func _draw_aura() -> void:
+	var s := Grid.TILE_SIZE
+	var height := sprite_height() * form.sprite_scale
+	var width := sprite_width() * form.sprite_scale
+	var pulse := sin(_aura_time * 8.0) * 1.5
+	var middle := Vector2(s / 2.0, s - height * 0.42)
+	for i in 3:
+		var grow := 1.0 + i * 0.18
+		var radius := Vector2(width * 0.34 + pulse, height * 0.5 + pulse) * grow
+		draw_set_transform(middle, 0.0, radius / 10.0)
+		draw_circle(Vector2.ZERO, 10.0, Color(form.aura_color, 0.22 - i * 0.06))
+	draw_set_transform(Vector2.ZERO)
+	# Funken steigen von den Fuessen bis ueber den Kopf.
+	for i in 6:
+		var rise := fmod(_aura_time * 22.0 + i * 9.0, height + 4.0)
+		var x := s / 2.0 + sin(i * 2.3 + _aura_time * 3.0) * width * 0.38
+		var alpha := 1.0 - rise / (height + 4.0)
+		draw_rect(Rect2(roundf(x), roundf(s - rise), 1, 2), Color(form.aura_color.lightened(0.4), alpha))
+	# Ring um die Fuesse.
+	draw_set_transform(Vector2(s / 2.0, s - 1.0), 0.0, Vector2(1.0, 0.35))
+	draw_arc(Vector2.ZERO, width * 0.45 + pulse, 0.0, TAU, 24, form.aura_color, 1.0)
+	draw_set_transform(Vector2.ZERO)

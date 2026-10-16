@@ -74,6 +74,20 @@ func has_sprite() -> bool:
 	return _sprite.visible
 
 
+## Hoehe einer Pose in Pixeln.
+func sprite_height() -> float:
+	if not has_sprite():
+		return Grid.TILE_SIZE
+	return _sprite.texture.get_height()
+
+
+## Toenung und Groesse des Bildes (z. B. fuer Verwandlungen). Die Fuesse bleiben auf dem Feld.
+func set_look(tint: Color, scale_factor: float) -> void:
+	_sprite.self_modulate = tint
+	_sprite.scale = Vector2.ONE * scale_factor
+	queue_redraw()
+
+
 ## Breite einer Pose in Pixeln (fuer Schatten und Lebensbalken).
 func sprite_width() -> float:
 	if not has_sprite():
@@ -181,6 +195,12 @@ func take_damage(amount: int) -> void:
 		_die()
 	else:
 		flash_pose(Pose.TREFFER, HURT_TIME)
+
+
+func heal(amount: int) -> void:
+	if is_alive():
+		hp = min(hp + amount, max_hp)
+		queue_redraw()
 
 
 func heal_full() -> void:

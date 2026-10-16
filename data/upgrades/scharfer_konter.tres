@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/upgrade_data.gd" id="1_upgrade"]
+[ext_resource type="Resource" path="res://data/fighters/techniker.tres" id="2_fighter"]
+
+[resource]
+script = ExtResource("1_upgrade")
+display_name = "Scharfer Konter"
+description = "Konter macht +2 Schaden"
+stat = 9
+amount = 2
+fighter = ExtResource("2_fighter")
+weight = 3
+color = Color(0.784, 0.6, 1, 1)

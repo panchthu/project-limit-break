@@ -1,10 +1,11 @@
-[gd_resource type="Resource" script_class="FighterData" load_steps=6 format=3]
+[gd_resource type="Resource" script_class="FighterData" load_steps=7 format=3]
 
 [ext_resource type="Script" path="res://scripts/fighter_data.gd" id="1_data"]
 [ext_resource type="Resource" path="res://data/techniques/kombo.tres" id="2_tech"]
 [ext_resource type="Resource" path="res://data/techniques/konter_haltung.tres" id="3_tech"]
 [ext_resource type="Texture2D" path="res://assets/sprites/helden/techniker.png" id="5_sprite"]
 [ext_resource type="Texture2D" path="res://assets/artworks/helden/techniker.png" id="6_artwork"]
+[ext_resource type="Resource" path="res://data/transformations/spiegelgeist.tres" id="7_form"]
 
 [resource]
 script = ExtResource("1_data")
@@ -20,3 +21,4 @@ ability_text = "Schlaegt sofort zurueck, wenn er getroffen wird"
 counter_damage = 2
 max_ki = 10
 techniques = Array[Resource]([ExtResource("2_tech"), ExtResource("3_tech")])
+transformation = ExtResource("7_form")
