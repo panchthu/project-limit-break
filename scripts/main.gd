@@ -27,13 +27,13 @@ var round_index := 0
 var _busy := false
 var _game_over := false
 
-@onready var player: Unit = $Player
+@onready var player: Player = $Player
 @onready var status_label: Label = $StatusLabel
 @onready var message_label: Label = $MessageLabel
 
 
 func _ready() -> void:
-	_apply_fighter(Game.fighter())
+	player.setup(Game.fighter())
 	player.died.connect(_on_player_died)
 	_start_round(0)
 
@@ -49,14 +49,6 @@ func _start_round(index: int) -> void:
 	_show_message("%s!" % round_data.name)
 
 
-## Werte des gewaehlten Kaempfers auf die Spielfigur uebertragen.
-func _apply_fighter(fighter: Dictionary) -> void:
-	player.max_hp = fighter.max_hp
-	player.attack = fighter.attack
-	player.body_color = fighter.color
-	player.heal_full()
-
-
 func _process(_delta: float) -> void:
 	if _game_over or _busy:
 		return
@@ -67,16 +59,15 @@ func _process(_delta: float) -> void:
 
 func _take_turn(dir: Vector2i) -> void:
 	var target := player.cell + dir
-	var enemy := _unit_at(target)
+	# Mit Reichweite > 1 (Ki-Akrobat) wird auch ein Gegner weiter weg in dieser Richtung getroffen.
+	var enemy := _enemy_in_line(player.cell, dir, player.fighter.attack_range)
 	if enemy == null and not _is_free(target):
 		# Gegen die Wand gelaufen: nur umdrehen, kein Zug verbraucht.
 		player.face(dir)
 		return
 	_busy = true
 	if enemy:
-		await player.attack_unit(enemy)
-		if enemy.is_alive():
-			_show_message("Treffer! -%d" % player.attack)
+		await _player_attack(enemy)
 	else:
 		await player.move_to(target)
 	await _enemy_turn()
@@ -85,14 +76,34 @@ func _take_turn(dir: Vector2i) -> void:
 	_busy = false
 
 
+## Angriff des Spielers mit den Faehigkeiten seines Kaempfers.
+func _player_attack(enemy: Unit) -> void:
+	var text: String
+	if _distance(player.cell, enemy.cell) > 1:
+		await player.shoot(enemy)
+		text = "Ki-Strahl! -%d" % player.attack
+	else:
+		await player.attack_unit(enemy)
+		text = "Treffer! -%d" % player.attack
+	if enemy.is_alive() and player.fighter.throw_distance > 0:
+		var slam := await player.throw_unit(enemy, _is_free)
+		text = "Wurf! -%d" % player.attack
+		if slam > 0:
+			text += "  Aufprall! -%d" % slam
+	# Stirbt der Gegner, bleibt "Gegner besiegt!" stehen.
+	if enemy.is_alive():
+		_show_message(text)
+
+
 func _enemy_turn() -> void:
 	for enemy: Unit in _enemies():
 		if not player.is_alive():
 			return
-		var distance: Vector2i = (player.cell - enemy.cell).abs()
-		if distance.x + distance.y == 1:
-			await enemy.attack_unit(player)
-			_show_message("Autsch! -%d" % enemy.attack)
+		# Ein Konter kann Gegner mitten im Gegnerzug besiegen.
+		if not is_instance_valid(enemy) or not enemy.is_alive():
+			continue
+		if _distance(player.cell, enemy.cell) == 1:
+			_show_message(await player.defend(enemy))
 		else:
 			var step: Vector2i = enemy.next_step(player.cell, _is_free)
 			if step != Vector2i.ZERO:
@@ -101,6 +112,23 @@ func _enemy_turn() -> void:
 
 func _enemies() -> Array[Node]:
 	return get_tree().get_nodes_in_group("enemies")
+
+
+## Erster Gegner in gerader Linie, hoechstens max_range Felder weit.
+func _enemy_in_line(from: Vector2i, dir: Vector2i, max_range: int) -> Unit:
+	for i in range(1, max_range + 1):
+		var cell := from + dir * i
+		if not Grid.is_inside(cell):
+			return null
+		var enemy := _unit_at(cell)
+		if enemy:
+			return enemy
+	return null
+
+
+static func _distance(a: Vector2i, b: Vector2i) -> int:
+	var diff := (a - b).abs()
+	return diff.x + diff.y
 
 
 func _unit_at(cell: Vector2i) -> Unit:

@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="FighterData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/fighter_data.gd" id="1_data"]
+
+[resource]
+script = ExtResource("1_data")
+display_name = "Koloss"
+description = "Viel HP, langsame aber schwere Haende."
+max_hp = 26
+attack = 2
+color = Color(0.357, 0.553, 0.937, 1)
+ability_name = "Wurf + Super-Armor"
+ability_text = "Schleudert Gegner 2 Felder weg, nimmt -1 Schaden"
+armor = 1
+throw_distance = 2
+throw_slam_damage = 2

@@ -1,0 +1,30 @@
+class_name FighterData
+extends Resource
+## Ein spielbarer Kaempfer als Daten-Datei (siehe data/fighters/*.tres).
+## Die Faehigkeiten stecken in einfachen Zahlen: 0 heisst "hat er nicht".
+## So koennen spaeter Upgrades (M7) dieselben Werte einfach erhoehen.
+
+@export var display_name := "Kaempfer"
+## Kurzer Satz fuer die Kaempfer-Auswahl.
+@export var description := ""
+@export var max_hp := 20
+@export var attack := 3
+## Platzhalter-Farbe, bis echte Pixel-Art da ist.
+@export var color := Color.WHITE
+
+@export_group("Spezialfaehigkeit")
+@export var ability_name := ""
+## Kurze Erklaerung fuer die Kaempfer-Auswahl.
+@export var ability_text := ""
+## Konter: Schaden, mit dem er sofort zurueckschlaegt, wenn er getroffen wird.
+@export var counter_damage := 0
+## Super-Armor: so viel weniger Schaden pro Treffer (mindestens 1 kommt immer durch).
+@export var armor := 0
+## Wurf: so viele Felder fliegt ein getroffener Gegner weg.
+@export var throw_distance := 0
+## Wurf: Extra-Schaden, wenn der Gegner gegen eine Wand oder einen anderen Gegner knallt.
+@export var throw_slam_damage := 0
+## Reichweite in Feldern. 1 = nur Nahkampf, mehr = Ki-Strahl in gerader Linie.
+@export var attack_range := 1
+## Ausweichen: Chance (0 bis 1), einem Angriff komplett zu entgehen.
+@export_range(0.0, 1.0, 0.05) var dodge_chance := 0.0

@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="FighterData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/fighter_data.gd" id="1_data"]
+
+[resource]
+script = ExtResource("1_data")
+display_name = "Ki-Akrobat"
+description = "Wenig HP. Kaempft lieber auf Abstand."
+max_hp = 14
+attack = 3
+color = Color(0.31, 0.82, 0.647, 1)
+ability_name = "Ki-Strahl + Ausweichen"
+ability_text = "Trifft bis 4 Felder weit, weicht 30% der Angriffe aus"
+attack_range = 4
+dodge_chance = 0.3
