@@ -34,21 +34,31 @@ func is_alive() -> bool:
 ## Einen Schritt auf ein freies Nachbarfeld machen (mit Animation).
 func move_to(target: Vector2i) -> void:
 	face(target - cell)
+	await slide_to(target, MOVE_TIME)
+
+
+## Auf ein Feld rutschen, ohne sich umzudrehen (z. B. wenn man geworfen wird).
+func slide_to(target: Vector2i, duration: float) -> void:
 	cell = target
 	var tween := create_tween()
-	tween.tween_property(self, "position", Grid.cell_to_world(cell), MOVE_TIME)
+	tween.tween_property(self, "position", Grid.cell_to_world(cell), duration)
 	await tween.finished
 
 
-## Kurz zum Ziel hin "stossen", dann Schaden austeilen.
-func attack_unit(other: Unit) -> void:
-	face(other.cell - cell)
+## Kurz in Blickrichtung "stossen" (nur Animation, kein Schaden).
+func lunge_at(other: Unit) -> void:
+	face((other.cell - cell).sign())
 	var home := Grid.cell_to_world(cell)
 	var tween := create_tween()
 	tween.tween_property(self, "position", home + Vector2(facing) * 6.0, 0.05)
 	tween.tween_property(self, "position", home, 0.08)
 	await tween.finished
-	other.take_damage(attack)
+
+
+## Zustossen, dann Schaden austeilen. Ohne amount zaehlt der normale Angriffswert.
+func attack_unit(other: Unit, amount := -1) -> void:
+	await lunge_at(other)
+	other.take_damage(attack if amount < 0 else amount)
 
 
 func take_damage(amount: int) -> void:

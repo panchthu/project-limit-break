@@ -9,6 +9,7 @@ var selected := 0
 
 @onready var name_label: Label = $NameLabel
 @onready var stats_label: Label = $StatsLabel
+@onready var ability_label: Label = $AbilityLabel
 @onready var description_label: Label = $DescriptionLabel
 
 
@@ -34,9 +35,10 @@ func _change(step: int) -> void:
 
 
 func _refresh() -> void:
-	var fighter: Dictionary = Game.FIGHTERS[selected]
-	name_label.text = fighter.name
+	var fighter := Game.FIGHTERS[selected]
+	name_label.text = fighter.display_name
 	stats_label.text = "HP %d   Angriff %d" % [fighter.max_hp, fighter.attack]
+	ability_label.text = "%s: %s" % [fighter.ability_name, fighter.ability_text]
 	description_label.text = fighter.description
 	queue_redraw()
 
@@ -52,7 +54,7 @@ func _box_rect(index: int) -> Rect2:
 func _draw() -> void:
 	for i in Game.FIGHTERS.size():
 		var rect := _box_rect(i)
-		var color: Color = Game.FIGHTERS[i].color
+		var color := Game.FIGHTERS[i].color
 		if i != selected:
 			color = color.darkened(0.55)
 		draw_rect(rect, color)

@@ -18,14 +18,11 @@ const KEYS := {
 	"restart": [KEY_R],
 }
 
-## Platzhalter-Kaempfer. In M4 werden daraus eigene Daten-Dateien mit Spezialfaehigkeiten.
-const FIGHTERS := [
-	{"name": "Techniker", "max_hp": 20, "attack": 3, "color": Color("f2a541"),
-		"description": "Ausgewogen. Konter und Combos."},
-	{"name": "Koloss", "max_hp": 28, "attack": 2, "color": Color("5b8def"),
-		"description": "Viel HP. Griffe und Wuerfe."},
-	{"name": "Ki-Akrobat", "max_hp": 14, "attack": 4, "color": Color("4fd1a5"),
-		"description": "Wenig HP. Ki-Strahlen auf Distanz."},
+## Die spielbaren Kaempfer. Werte und Faehigkeiten stehen in den Daten-Dateien.
+const FIGHTERS: Array[FighterData] = [
+	preload("res://data/fighters/techniker.tres"),
+	preload("res://data/fighters/koloss.tres"),
+	preload("res://data/fighters/ki_akrobat.tres"),
 ]
 
 ## Index in FIGHTERS des gewaehlten Kaempfers.
@@ -39,7 +36,7 @@ func _ready() -> void:
 	_setup_input()
 
 
-func fighter() -> Dictionary:
+func fighter() -> FighterData:
 	return FIGHTERS[fighter_index]
 
 

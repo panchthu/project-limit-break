@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="FighterData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/fighter_data.gd" id="1_data"]
+
+[resource]
+script = ExtResource("1_data")
+display_name = "Techniker"
+description = "Ausgewogen. Bestraft jeden Angriff."
+max_hp = 20
+attack = 3
+color = Color(0.949, 0.647, 0.255, 1)
+ability_name = "Konter"
+ability_text = "Schlaegt sofort zurueck, wenn er getroffen wird"
+counter_damage = 2
