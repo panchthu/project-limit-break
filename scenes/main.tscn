@@ -2,7 +2,7 @@
 
 [ext_resource type="Script" path="res://scripts/main.gd" id="1_main"]
 [ext_resource type="PackedScene" path="res://scenes/player.tscn" id="2_player"]
-[ext_resource type="PackedScene" path="res://scenes/boss_intro.tscn" id="3_intro"]
+[ext_resource type="PackedScene" path="res://scenes/intro.tscn" id="3_intro"]
 
 [node name="Main" type="Node2D"]
 y_sort_enabled = true
@@ -43,4 +43,4 @@ theme_override_colors/font_color = Color(0.6, 0.57, 0.75, 1)
 theme_override_font_sizes/font_size = 8
 horizontal_alignment = 2
 
-[node name="BossIntro" parent="." instance=ExtResource("3_intro")]
+[node name="Intro" parent="." instance=ExtResource("3_intro")]

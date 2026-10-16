@@ -1,6 +1,6 @@
-class_name BossIntro
+class_name Intro
 extends CanvasLayer
-## Auftritt vor dem Bosskampf: Portraet, Name und Spezialattacke des Bosses.
+## Kurzer Auftritt mit grossem Bild: zu Beginn jeder Map und vor jedem Bosskampf.
 ## Geht nach DURATION von selbst weiter, Enter ueberspringt.
 
 signal closed
@@ -14,9 +14,10 @@ var _time := 0.0
 var _open := false
 
 @onready var root: Control = $Root
-@onready var portrait: TextureRect = $Root/Portrait
+@onready var picture: TextureRect = $Root/Picture
+@onready var tag_label: Label = $Root/TagLabel
 @onready var name_label: Label = $Root/NameLabel
-@onready var special_label: Label = $Root/SpecialLabel
+@onready var info_label: Label = $Root/InfoLabel
 
 
 func _ready() -> void:
@@ -24,9 +25,21 @@ func _ready() -> void:
 
 
 func show_boss(data: EnemyData) -> void:
-	portrait.texture = data.portrait
-	name_label.text = data.display_name
-	special_label.text = "Spezialattacke: %s" % data.special_name
+	_show(data.portrait, "BOSS", Color("d94d6b"), data.display_name, "Spezialattacke: %s" % data.special_name)
+
+
+func show_map(map: MapData, number: int) -> void:
+	_show(map.artwork, "MAP %d" % number, Color("8fe8ff"), map.display_name,
+		"%d Runden, dann der Boss" % (map.rounds.size() - 1))
+
+
+## tag steht klein oben links im Bild, darunter Name und eine Zeile Info.
+func _show(texture: Texture2D, tag: String, tag_color: Color, title: String, info: String) -> void:
+	picture.texture = texture
+	tag_label.text = tag
+	tag_label.add_theme_color_override("font_color", tag_color)
+	name_label.text = title
+	info_label.text = info
 	_time = 0.0
 	_open = true
 	visible = true

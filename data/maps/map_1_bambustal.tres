@@ -1,10 +1,12 @@
-[gd_resource type="Resource" script_class="MapData" load_steps=9 format=3]
+[gd_resource type="Resource" script_class="MapData" load_steps=11 format=3]
 
 [ext_resource type="Script" path="res://scripts/map_data.gd" id="1_map"]
 [ext_resource type="Script" path="res://scripts/round_data.gd" id="1_round"]
 [ext_resource type="Resource" path="res://data/enemies/boss_felsbrecher.tres" id="2_boss_felsbrecher"]
 [ext_resource type="Resource" path="res://data/enemies/flitzer.tres" id="3_flitzer"]
 [ext_resource type="Resource" path="res://data/enemies/schlaeger.tres" id="4_schlaeger"]
+[ext_resource type="Texture2D" path="res://assets/maps/bambustal.png" id="8_background"]
+[ext_resource type="Texture2D" path="res://assets/artworks/maps/bambustal.png" id="9_artwork"]
 
 [sub_resource type="Resource" id="round_1"]
 script = ExtResource("1_round")
@@ -29,4 +31,6 @@ script = ExtResource("1_map")
 display_name = "Bambustal"
 floor_color_a = Color(0.149, 0.251, 0.184, 1)
 floor_color_b = Color(0.18, 0.29, 0.216, 1)
+background = ExtResource("8_background")
+artwork = ExtResource("9_artwork")
 rounds = Array[Resource]([SubResource("round_1"), SubResource("round_2"), SubResource("round_3")])

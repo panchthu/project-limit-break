@@ -5,7 +5,7 @@ extends Node2D
 ## Ein Run besteht aus mehreren Maps (Game.MAPS), jede Map aus Runden (data/maps/*.tres).
 ## Sind alle Gegner einer Runde besiegt, startet die naechste; nach dem Boss kommt die naechste Map.
 ## Figuren werden nach ihrer Zeile sortiert gezeichnet (y_sort), damit weiter unten stehende
-## Figuren vor den hoeheren stehen. Vor jedem Boss kommt sein Auftritt (BossIntro).
+## Figuren vor den hoeheren stehen. Zu Beginn jeder Map und vor jedem Boss kommt ein Auftritt (Intro).
 
 const ENEMY_SCENE := preload("res://scenes/enemy.tscn")
 
@@ -31,7 +31,7 @@ var round_index := 0
 ## Waehrend ein Zug abgespielt wird, keine neue Eingabe.
 var _busy := false
 var _game_over := false
-## Zwischen zwei Maps und waehrend des Boss-Auftritts keine Eingabe.
+## Zwischen zwei Maps und waehrend eines Auftritts keine Eingabe.
 var _between_maps := false
 var _intro := false
 ## Technik, fuer die gerade eine Richtung gewaehlt wird (null = keine).
@@ -42,7 +42,7 @@ var _aiming: TechniqueData = null
 @onready var message_label: Label = $MessageLabel
 @onready var technique_label: Label = $TechniqueLabel
 @onready var round_label: Label = $RoundLabel
-@onready var boss_intro: BossIntro = $BossIntro
+@onready var intro: Intro = $Intro
 
 
 func _ready() -> void:
@@ -57,6 +57,11 @@ func _start_map(index: int) -> void:
 	map = Game.MAPS[index]
 	_start_round(0)
 	_show_message("%s - %s!" % [map.display_name, map.rounds[0].display_name])
+	if map.artwork:
+		_intro = true
+		intro.show_map(map, index + 1)
+		await intro.closed
+		_intro = false
 
 
 func _start_round(index: int) -> void:
@@ -73,8 +78,8 @@ func _start_round(index: int) -> void:
 	_show_message("%s!" % round_data.display_name)
 	if boss and boss.portrait:
 		_intro = true
-		boss_intro.show_boss(boss)
-		await boss_intro.closed
+		intro.show_boss(boss)
+		await intro.closed
 		_intro = false
 
 

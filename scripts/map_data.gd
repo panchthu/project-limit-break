@@ -8,4 +8,6 @@ extends Resource
 @export var floor_color_b := Color("332d4d")
 ## Hintergrundbild des Spielfelds (320 x 160). Ohne Bild gibt es den Schachbrett-Boden.
 @export var background: Texture2D
+## Grosses Bild fuer den Auftritt zu Beginn der Map (256 x 144).
+@export var artwork: Texture2D
 @export var rounds: Array[RoundData] = []

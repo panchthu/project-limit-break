@@ -7,7 +7,7 @@ Der Quellordner hat denselben Aufbau wie limit-break-assets/ im Projekt:
     sprites/helden/<name>/0_idle.png ... 6_ko.png   (7 Posen pro Held)
     sprites/gegner/<name>.png, sprites/bosse/<name>.png   (eine Pose)
     artworks/helden/<name>.png, artworks/bosse/<name>_portrait.png
-    maps/<name>.png   (Hintergrund einer Map, optional)
+    maps/<name>.png, artworks/maps/<name>.png   (Spielfeld und Artwork einer Map, optional)
 
 Braucht Pillow und numpy. Neue Figur? Einfach unten in HOEHEN eintragen.
 """
@@ -115,6 +115,11 @@ def main() -> None:
         os.makedirs(f"{OUT}/maps", exist_ok=True)
         zuschneiden(Image.open(pfad), MAP_GROESSE).save(f"{OUT}/maps/{name}.png", optimize=True)
         print(f"maps/{name}: {MAP_GROESSE[0]}x{MAP_GROESSE[1]}")
+        # Map-Artwork fuer den Auftritt zu Beginn der Map (optional).
+        artwork = f"{quelle}/artworks/maps/{name}.png"
+        if os.path.exists(artwork):
+            os.makedirs(f"{OUT}/artworks/maps", exist_ok=True)
+            zuschneiden(Image.open(artwork), PORTRAIT_GROESSE).save(f"{OUT}/artworks/maps/{name}.png", optimize=True)
 
 
 if __name__ == "__main__":
