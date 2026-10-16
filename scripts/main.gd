@@ -1,6 +1,7 @@
 extends Node2D
 ## Hauptszene: zeichnet den Boden, richtet die Tasten ein und steuert die Zuege.
-## Ablauf: Spieler handelt (laufen oder angreifen), danach handelt jeder Gegner.
+## Ablauf: Spieler handelt (laufen, angreifen, Ki aufladen oder eine Technik), danach handelt jeder Gegner.
+## Eine Aktion pro Zug. Techniken kosten Ki, Aufladen und normale Treffer bringen Ki.
 ## Die Map besteht aus Runden: sind alle Gegner einer Runde besiegt, startet die naechste.
 
 const ENEMY_SCENE := preload("res://scenes/enemy.tscn")
@@ -18,6 +19,15 @@ const ROUNDS := [
 	]},
 ]
 
+## Tastennamen der Techniken fuer die Anzeige (passend zu Game.KEYS).
+const TECHNIQUE_KEYS := ["Q", "E"]
+## Farben der Leisten unten.
+const HP_BAR_COLOR := Color("6cd36c")
+const KI_BAR_COLOR := Color("8fe8ff")
+const BAR_BG_COLOR := Color("1d1a2f")
+const BAR_RECT_HP := Rect2(4, 163, 52, 4)
+const BAR_RECT_KI := Rect2(4, 171, 52, 4)
+
 ## Kurze Pause nach Sieg oder Niederlage, bevor der Ergebnis-Bildschirm kommt.
 const END_DELAY := 1.2
 
@@ -26,15 +36,20 @@ var round_index := 0
 ## Waehrend ein Zug abgespielt wird, keine neue Eingabe.
 var _busy := false
 var _game_over := false
+## Technik, fuer die gerade eine Richtung gewaehlt wird (null = keine).
+var _aiming: TechniqueData = null
 
 @onready var player: Player = $Player
 @onready var status_label: Label = $StatusLabel
 @onready var message_label: Label = $MessageLabel
+@onready var technique_label: Label = $TechniqueLabel
+@onready var round_label: Label = $RoundLabel
 
 
 func _ready() -> void:
 	player.setup(Game.fighter())
 	player.died.connect(_on_player_died)
+	player.ki_changed.connect(_update_status)
 	_start_round(0)
 
 
@@ -52,12 +67,67 @@ func _start_round(index: int) -> void:
 func _process(_delta: float) -> void:
 	if _game_over or _busy:
 		return
+	if _aiming:
+		_process_aiming()
+		return
+	for i in player.fighter.techniques.size():
+		if Input.is_action_just_pressed("technique_%d" % (i + 1)):
+			_select_technique(player.fighter.techniques[i])
+			return
+	if Input.is_action_just_pressed("charge"):
+		if player.ki >= player.max_ki:
+			_show_message("Ki ist voll!")
+		else:
+			_run_turn(_charge)
+		return
 	var dir: Vector2i = player.read_direction()
 	if dir != Vector2i.ZERO:
-		_take_turn(dir)
+		_move_or_attack(dir)
 
 
-func _take_turn(dir: Vector2i) -> void:
+## Technik-Taste gedrueckt: sofort ausfuehren oder erst eine Richtung waehlen lassen.
+func _select_technique(technique: TechniqueData) -> void:
+	if not player.can_afford(technique):
+		_show_message("Zu wenig Ki! (%d)" % technique.ki_cost)
+		return
+	if technique.needs_direction():
+		_aiming = technique
+		_show_message("%s: Richtung?" % technique.display_name)
+		return
+	_try_technique(technique, Vector2i.ZERO)
+
+
+## Waehrend gezielt wird: Richtung loest aus, gleiche Taste oder Esc bricht ab.
+func _process_aiming() -> void:
+	if Input.is_action_just_pressed("back") or _technique_key_just_pressed():
+		_aiming = null
+		_show_message("Abgebrochen")
+		return
+	var dir: Vector2i = player.read_direction(true)
+	if dir != Vector2i.ZERO:
+		var technique := _aiming
+		_aiming = null
+		_try_technique(technique, dir)
+
+
+func _technique_key_just_pressed() -> bool:
+	for i in player.fighter.techniques.size():
+		if Input.is_action_just_pressed("technique_%d" % (i + 1)):
+			return true
+	return false
+
+
+## Prueft, ob die Technik ein Ziel hat. Nur dann kostet sie Ki und den Zug.
+func _try_technique(technique: TechniqueData, dir: Vector2i) -> void:
+	var problem := _technique_problem(technique, dir)
+	if problem != "":
+		player.face(dir)
+		_show_message(problem)
+		return
+	_run_turn(_use_technique.bind(technique, dir))
+
+
+func _move_or_attack(dir: Vector2i) -> void:
 	var target := player.cell + dir
 	# Mit Reichweite > 1 (Ki-Akrobat) wird auch ein Gegner weiter weg in dieser Richtung getroffen.
 	var enemy := _enemy_in_line(player.cell, dir, player.fighter.attack_range)
@@ -65,20 +135,95 @@ func _take_turn(dir: Vector2i) -> void:
 		# Gegen die Wand gelaufen: nur umdrehen, kein Zug verbraucht.
 		player.face(dir)
 		return
-	_busy = true
 	if enemy:
-		await _player_attack(enemy)
+		_run_turn(_player_attack.bind(enemy))
 	else:
-		await player.move_to(target)
+		_run_turn(player.move_to.bind(target))
+
+
+## Ein ganzer Zug: Aktion des Spielers, dann alle Gegner.
+func _run_turn(action: Callable) -> void:
+	_busy = true
+	await action.call()
 	await _enemy_turn()
+	player.clear_stances()
 	turn += 1
 	_update_status()
 	_busy = false
 
 
+func _charge() -> void:
+	await player.charge()
+	_show_message("Ki aufgeladen! +%d" % player.fighter.ki_charge)
+
+
+## Warum die Technik gerade nicht geht ("" = sie geht).
+func _technique_problem(technique: TechniqueData, dir: Vector2i) -> String:
+	match technique.effect:
+		TechniqueData.Effect.KOMBO, TechniqueData.Effect.RIESENWURF:
+			if _unit_at(player.cell + dir) == null:
+				return "Kein Gegner daneben!"
+		TechniqueData.Effect.KI_WELLE:
+			if _enemies_in_line(player.cell, dir).is_empty():
+				return "Kein Gegner in der Linie!"
+		TechniqueData.Effect.STAMPFER:
+			if _enemies_around(player.cell).is_empty():
+				return "Kein Gegner in der Naehe!"
+		TechniqueData.Effect.NACHBILD:
+			if _dash_target(player.cell, dir, technique.distance) == player.cell:
+				return "Kein Platz!"
+	return ""
+
+
+## Fuehrt eine Technik aus (Ziel wurde vorher geprueft).
+func _use_technique(technique: TechniqueData, dir: Vector2i) -> void:
+	player.gain_ki(-technique.ki_cost)
+	var text := technique.display_name + "!"
+	match technique.effect:
+		TechniqueData.Effect.KOMBO:
+			var enemy := _unit_at(player.cell + dir)
+			for i in technique.hits:
+				if not enemy.is_alive():
+					break
+				await player.attack_unit(enemy, technique.power)
+			text += " -%d x%d" % [technique.power, technique.hits]
+		TechniqueData.Effect.KONTER_HALTUNG:
+			player.counter_stance = technique.power
+			player.queue_redraw()
+		TechniqueData.Effect.STAMPFER:
+			await player.charge_flash()
+			for enemy: Unit in _enemies_around(player.cell):
+				enemy.take_damage(technique.power)
+				if enemy.is_alive():
+					var away := (enemy.cell - player.cell).sign()
+					await player.throw_unit(enemy, _is_free, technique.distance, 0, away)
+			text += " -%d" % technique.power
+		TechniqueData.Effect.RIESENWURF:
+			var enemy := _unit_at(player.cell + dir)
+			player.face(dir)
+			await player.attack_unit(enemy, technique.power)
+			text += " -%d" % technique.power
+			if enemy.is_alive():
+				var slam := await player.throw_unit(enemy, _is_free, technique.distance, technique.slam_damage, dir)
+				if slam > 0:
+					text += "  Aufprall! -%d" % slam
+		TechniqueData.Effect.KI_WELLE:
+			var targets := _enemies_in_line(player.cell, dir)
+			await player.beam(dir, _cells_to_wall(player.cell, dir))
+			for enemy: Unit in targets:
+				enemy.take_damage(technique.power)
+			text += " -%d" % technique.power
+		TechniqueData.Effect.NACHBILD:
+			await player.dash_to(_dash_target(player.cell, dir, technique.distance))
+			player.sure_dodge = true
+			player.queue_redraw()
+	_show_message(text)
+
+
 ## Angriff des Spielers mit den Faehigkeiten seines Kaempfers.
 func _player_attack(enemy: Unit) -> void:
 	var text: String
+	player.gain_ki(player.fighter.ki_per_hit)
 	if _distance(player.cell, enemy.cell) > 1:
 		await player.shoot(enemy)
 		text = "Ki-Strahl! -%d" % player.attack
@@ -112,6 +257,50 @@ func _enemy_turn() -> void:
 
 func _enemies() -> Array[Node]:
 	return get_tree().get_nodes_in_group("enemies")
+
+
+## Alle Gegner in gerader Linie bis zur Wand.
+func _enemies_in_line(from: Vector2i, dir: Vector2i) -> Array[Unit]:
+	var found: Array[Unit] = []
+	if dir == Vector2i.ZERO:
+		return found
+	var cell := from + dir
+	while Grid.is_inside(cell):
+		var enemy := _unit_at(cell)
+		if enemy:
+			found.append(enemy)
+		cell += dir
+	return found
+
+
+## Alle Gegner auf den 8 Feldern rundherum.
+func _enemies_around(center: Vector2i) -> Array[Unit]:
+	var found: Array[Unit] = []
+	for enemy: Unit in _enemies():
+		var diff := (enemy.cell - center).abs()
+		if max(diff.x, diff.y) == 1:
+			found.append(enemy)
+	return found
+
+
+## Wie viele Felder bis zum Rand (fuer die Laenge des Strahls).
+func _cells_to_wall(from: Vector2i, dir: Vector2i) -> int:
+	var count := 0
+	var cell := from + dir
+	while Grid.is_inside(cell):
+		count += 1
+		cell += dir
+	return count
+
+
+## Weitestes freies Feld in Richtung dir, hoechstens max_cells weit.
+func _dash_target(from: Vector2i, dir: Vector2i, max_cells: int) -> Vector2i:
+	var target := from
+	for i in max_cells:
+		if not _is_free(target + dir):
+			break
+		target += dir
+	return target
 
 
 ## Erster Gegner in gerader Linie, hoechstens max_range Felder weit.
@@ -167,7 +356,15 @@ func _end_game(won: bool, text: String) -> void:
 
 
 func _update_status() -> void:
-	status_label.text = "HP %d/%d  %s  Zug %d" % [player.hp, player.max_hp, ROUNDS[round_index].name, turn]
+	status_label.text = "HP %d/%d  Ki %d/%d" % [player.hp, player.max_hp, player.ki, player.max_ki]
+	round_label.text = "%s  Zug %d" % [ROUNDS[round_index].name, turn]
+	var parts: PackedStringArray = []
+	for i in player.fighter.techniques.size():
+		var technique: TechniqueData = player.fighter.techniques[i]
+		parts.append("%s %s %d" % [TECHNIQUE_KEYS[i], technique.label(), technique.ki_cost])
+	parts.append("F Laden")
+	technique_label.text = "  ".join(parts)
+	queue_redraw()
 
 
 func _show_message(text: String) -> void:
@@ -185,3 +382,16 @@ func _draw() -> void:
 		for x in Grid.WIDTH:
 			var color := Color("2b2640") if (x + y) % 2 == 0 else Color("332d4d")
 			draw_rect(Rect2(x * s, y * s, s, s), color)
+	_draw_bar(BAR_RECT_HP, player.hp, player.max_hp, HP_BAR_COLOR, 0)
+	_draw_bar(BAR_RECT_KI, player.ki, player.max_ki, KI_BAR_COLOR, player.max_ki)
+
+
+## Leiste unten. Mit segments > 0 wird sie in einzelne Ki-Punkte geteilt.
+func _draw_bar(rect: Rect2, value: int, max_value: int, color: Color, segments: int) -> void:
+	draw_rect(rect, BAR_BG_COLOR)
+	var filled := rect
+	filled.size.x = round(rect.size.x * float(value) / max(max_value, 1))
+	draw_rect(filled, color)
+	for i in range(1, segments):
+		var x: float = rect.position.x + round(rect.size.x * float(i) / segments)
+		draw_line(Vector2(x, rect.position.y), Vector2(x, rect.end.y), BAR_BG_COLOR, 1.0)

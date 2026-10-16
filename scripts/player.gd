@@ -9,8 +9,19 @@ const KI_BLAST_COLOR := Color("aef3ff")
 const KI_BLAST_TIME := 0.15
 ## Flugzeit pro Feld, wenn ein Gegner geworfen wird.
 const THROW_TIME_PER_CELL := 0.06
+## Farbe der Ki-Aura beim Aufladen.
+const KI_AURA_COLOR := Color("8fe8ff")
+
+## Ki hat sich geaendert (fuer die Anzeige).
+signal ki_changed
 
 var fighter: FighterData
+var ki := 0
+var max_ki := 10
+## Konter-Haltung: Schaden, den jeder Angreifer im naechsten Gegnerzug kassiert (0 = aus).
+var counter_stance := 0
+## Nachbild: im naechsten Gegnerzug weicht er jedem Angriff aus.
+var sure_dodge := false
 
 
 ## Werte des gewaehlten Kaempfers uebernehmen.
@@ -19,24 +30,63 @@ func setup(data: FighterData) -> void:
 	max_hp = data.max_hp
 	attack = data.attack
 	body_color = data.color
+	max_ki = data.max_ki
 	heal_full()
+	set_ki(data.start_ki)
+
+
+func set_ki(value: int) -> void:
+	ki = clampi(value, 0, max_ki)
+	ki_changed.emit()
+
+
+func gain_ki(amount: int) -> void:
+	set_ki(ki + amount)
+
+
+func can_afford(technique: TechniqueData) -> bool:
+	return ki >= technique.ki_cost
+
+
+## Haltungen gelten nur fuer einen Gegnerzug.
+func clear_stances() -> void:
+	counter_stance = 0
+	sure_dodge = false
+	queue_redraw()
+
+
+## Ki aufladen: Aura flackert kurz auf.
+func charge() -> void:
+	gain_ki(fighter.ki_charge)
+	await charge_flash()
+
+
+## Kurzes Aufleuchten in Ki-Farbe.
+func charge_flash() -> void:
+	modulate = KI_AURA_COLOR * 1.6
+	var tween := create_tween()
+	tween.tween_property(self, "modulate", Color.WHITE, 0.35)
+	await tween.finished
 
 
 ## Nur eine Richtung gleichzeitig, keine Diagonalen.
-func read_direction() -> Vector2i:
-	if Input.is_action_pressed("move_up"):
-		return Vector2i.UP
-	if Input.is_action_pressed("move_down"):
-		return Vector2i.DOWN
-	if Input.is_action_pressed("move_left"):
-		return Vector2i.LEFT
-	if Input.is_action_pressed("move_right"):
-		return Vector2i.RIGHT
+## Mit just = true zaehlt nur ein frischer Tastendruck (nicht gedrueckt halten).
+func read_direction(just := false) -> Vector2i:
+	var directions := {
+		"move_up": Vector2i.UP,
+		"move_down": Vector2i.DOWN,
+		"move_left": Vector2i.LEFT,
+		"move_right": Vector2i.RIGHT,
+	}
+	for action: String in directions:
+		var pressed := Input.is_action_just_pressed(action) if just else Input.is_action_pressed(action)
+		if pressed:
+			return directions[action]
 	return Vector2i.ZERO
 
 
 ## Ki-Strahl: ein Lichtball fliegt zum Ziel, dann gibt es Schaden.
-func shoot(target: Unit) -> void:
+func shoot(target: Unit, amount := -1) -> void:
 	face((target.cell - cell).sign())
 	var blast := ColorRect.new()
 	blast.color = KI_BLAST_COLOR
@@ -49,31 +99,76 @@ func shoot(target: Unit) -> void:
 	tween.tween_property(blast, "position", start + target.position - position, KI_BLAST_TIME)
 	await tween.finished
 	blast.queue_free()
-	target.take_damage(attack)
+	target.take_damage(attack if amount < 0 else amount)
+
+
+## Ki-Welle: ein breiter Strahl von der Figur bis cells Felder weit.
+func beam(dir: Vector2i, cells: int) -> void:
+	face(dir)
+	var ray := ColorRect.new()
+	ray.color = KI_BLAST_COLOR
+	var half := Grid.TILE_SIZE / 2.0
+	var length := cells * Grid.TILE_SIZE
+	var thick := 6.0
+	# Rechteck vom Mittelpunkt der Figur in Richtung dir.
+	var a := Vector2(half, half)
+	var b := a + Vector2(dir) * length
+	ray.position = Vector2(min(a.x, b.x), min(a.y, b.y)) - Vector2(thick, thick) / 2.0 * Vector2(absi(dir.y), absi(dir.x))
+	ray.size = (b - a).abs() + Vector2(thick * absi(dir.y), thick * absi(dir.x))
+	ray.z_index = 1
+	add_child(ray)
+	var tween := create_tween()
+	tween.tween_property(ray, "modulate:a", 0.0, 0.3)
+	await tween.finished
+	ray.queue_free()
+
+
+## Nachbild: ein blasser Abdruck bleibt stehen, die Figur rutscht weiter.
+func dash_to(target: Vector2i) -> void:
+	var ghost := ColorRect.new()
+	ghost.color = Color(body_color, 0.6)
+	ghost.position = position + Vector2(2, 3)
+	ghost.size = Vector2(Grid.TILE_SIZE - 4, Grid.TILE_SIZE - 5)
+	get_parent().add_child(ghost)
+	var fade := ghost.create_tween()
+	fade.tween_property(ghost, "modulate:a", 0.0, 0.4)
+	fade.tween_callback(ghost.queue_free)
+	face((target - cell).sign())
+	await slide_to(target, 0.08)
 
 
 ## Wurf: den (noch lebenden) Gegner in Blickrichtung wegschleudern.
 ## Knallt er vorher gegen etwas, gibt es Extra-Schaden. Gibt den Extra-Schaden zurueck.
-func throw_unit(target: Unit, is_free: Callable) -> int:
+## Ohne distance/slam zaehlen die Werte des Kaempfers; dir ist sonst die Blickrichtung.
+func throw_unit(target: Unit, is_free: Callable, distance := -1, slam := -1, dir := Vector2i.ZERO) -> int:
+	if distance < 0:
+		distance = fighter.throw_distance
+	if slam < 0:
+		slam = fighter.throw_slam_damage
+	if dir == Vector2i.ZERO:
+		dir = facing
 	var landing := target.cell
-	for i in fighter.throw_distance:
-		if not is_free.call(landing + facing):
+	for i in distance:
+		if not is_free.call(landing + dir):
 			break
-		landing += facing
+		landing += dir
 	var flown := (landing - target.cell).length()
 	if landing != target.cell:
 		await target.slide_to(landing, THROW_TIME_PER_CELL * flown)
-	if flown < fighter.throw_distance and fighter.throw_slam_damage > 0:
-		target.take_damage(fighter.throw_slam_damage)
-		return fighter.throw_slam_damage
+	if flown < distance and slam > 0:
+		target.take_damage(slam)
+		return slam
 	return 0
 
 
-## Ein Gegner greift an. Hier wirken Ausweichen, Super-Armor und Konter.
+## Ein Gegner greift an. Hier wirken Haltungen, Ausweichen, Super-Armor und Konter.
 ## Gibt den Text fuer die Meldungszeile zurueck.
 func defend(attacker: Unit) -> String:
 	await attacker.lunge_at(self)
-	if randf() < fighter.dodge_chance:
+	if counter_stance > 0:
+		await attack_unit(attacker, counter_stance)
+		return "Geblockt!  Konter! -%d" % counter_stance
+	if sure_dodge or randf() < fighter.dodge_chance:
 		await _dodge_from(attacker)
 		return "Ausgewichen!"
 	var damage: int = max(attacker.attack - fighter.armor, 1)
@@ -99,3 +194,11 @@ func _dodge_from(attacker: Unit) -> void:
 func _die() -> void:
 	modulate = Color(0.4, 0.4, 0.4)
 	super()
+
+
+func _draw() -> void:
+	super()
+	# Aktive Haltung als heller Rahmen um die Figur.
+	if counter_stance > 0 or sure_dodge:
+		var s := Grid.TILE_SIZE
+		draw_rect(Rect2(0.5, 1.5, s - 1, s - 2), KI_AURA_COLOR, false, 1.0)

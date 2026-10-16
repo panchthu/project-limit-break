@@ -1,6 +1,8 @@
-[gd_resource type="Resource" script_class="FighterData" load_steps=2 format=3]
+[gd_resource type="Resource" script_class="FighterData" load_steps=4 format=3]
 
 [ext_resource type="Script" path="res://scripts/fighter_data.gd" id="1_data"]
+[ext_resource type="Resource" path="res://data/techniques/stampfer.tres" id="2_tech"]
+[ext_resource type="Resource" path="res://data/techniques/riesenwurf.tres" id="3_tech"]
 
 [resource]
 script = ExtResource("1_data")
@@ -14,3 +16,5 @@ ability_text = "Schleudert Gegner 2 Felder weg, nimmt -1 Schaden"
 armor = 1
 throw_distance = 2
 throw_slam_damage = 2
+max_ki = 10
+techniques = Array[Resource]([ExtResource("2_tech"), ExtResource("3_tech")])

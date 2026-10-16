@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="TechniqueData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/technique_data.gd" id="1_tech"]
+
+[resource]
+script = ExtResource("1_tech")
+display_name = "Nachbild"
+short_name = "Nachbild"
+description = "Sprung bis 3 Felder, weicht dann sicher aus"
+ki_cost = 3
+effect = 5
+distance = 3

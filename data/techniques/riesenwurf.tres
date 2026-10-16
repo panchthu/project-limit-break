@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="TechniqueData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/technique_data.gd" id="1_tech"]
+
+[resource]
+script = ExtResource("1_tech")
+display_name = "Riesenwurf"
+short_name = "Riesenwurf"
+description = "Packt (3), wirft 4 Felder weit, Aufprall 4"
+ki_cost = 6
+effect = 3
+power = 3
+distance = 4
+slam_damage = 4
