@@ -11,17 +11,6 @@ grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1_select")
 
-[node name="HeaderLabel" type="Label" parent="."]
-layout_mode = 1
-anchors_preset = 10
-anchor_right = 1.0
-offset_top = 10.0
-offset_bottom = 26.0
-grow_horizontal = 2
-theme_override_font_sizes/font_size = 12
-text = "Waehle deinen Kaempfer"
-horizontal_alignment = 1
-
 [node name="NameLabel" type="Label" parent="."]
 layout_mode = 1
 anchors_preset = 10
@@ -86,5 +75,5 @@ offset_bottom = 178.0
 grow_horizontal = 2
 theme_override_colors/font_color = Color(0.6, 0.57, 0.75, 1)
 theme_override_font_sizes/font_size = 8
-text = "Links/Rechts waehlen   Enter starten   Esc zurueck"
+text = "Waehle deinen Kaempfer: Links/Rechts   Enter starten   Esc zurueck"
 horizontal_alignment = 1

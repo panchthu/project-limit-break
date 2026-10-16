@@ -30,8 +30,10 @@ enum Pattern {
 @export var display_name := "Gegner"
 @export var max_hp := 6
 @export var attack := 2
-## Platzhalter-Farbe, bis echte Pixel-Art da ist.
+## Akzentfarbe (Ersatz, falls kein Sprite da ist).
 @export var color := Color.WHITE
+## Eine Pose, der Gegner schaut im Bild nach links.
+@export var sprite: Texture2D
 @export var behavior := Behavior.NAHKAMPF
 ## Reichweite des Ki-Schusses (nur FERNKAMPF).
 @export var attack_range := 1
@@ -41,8 +43,10 @@ enum Pattern {
 @export var armor := 0
 
 @export_group("Boss")
-## Bosse bekommen einen hellen Rahmen.
+## Bosse bekommen einen goldenen Schatten und einen Auftritt vor dem Kampf.
 @export var is_boss := false
+## Breites Bild fuer den Boss-Auftritt (256 x 144).
+@export var portrait: Texture2D
 @export var special_name := ""
 @export var special_pattern := Pattern.KEINER
 ## Groesse des Musters (bei UMKREIS der Radius).

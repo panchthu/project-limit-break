@@ -1,6 +1,8 @@
-[gd_resource type="Resource" script_class="EnemyData" load_steps=2 format=3]
+[gd_resource type="Resource" script_class="EnemyData" load_steps=4 format=3]
 
 [ext_resource type="Script" path="res://scripts/enemy_data.gd" id="1_enemy"]
+[ext_resource type="Texture2D" path="res://assets/sprites/bosse/felsbrecher.png" id="2_sprite"]
+[ext_resource type="Texture2D" path="res://assets/artworks/bosse/felsbrecher.png" id="3_portrait"]
 
 [resource]
 script = ExtResource("1_enemy")
@@ -8,6 +10,8 @@ display_name = "Felsbrecher"
 max_hp = 18
 attack = 3
 color = Color(0.69, 0.478, 0.271, 1)
+sprite = ExtResource("2_sprite")
+portrait = ExtResource("3_portrait")
 is_boss = true
 special_name = "Bodenschlag"
 special_pattern = 1

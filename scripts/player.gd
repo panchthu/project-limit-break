@@ -31,6 +31,7 @@ func setup(data: FighterData) -> void:
 	max_hp = data.max_hp
 	attack = data.attack
 	body_color = data.color
+	set_sprite(data.sprite_sheet, Pose.size(), false)
 	max_ki = data.max_ki
 	heal_full()
 	set_ki(data.start_ki)
@@ -64,10 +65,12 @@ func charge() -> void:
 
 ## Kurzes Aufleuchten in Ki-Farbe.
 func charge_flash() -> void:
+	set_pose(Pose.SPEZIAL)
 	modulate = KI_AURA_COLOR * 1.6
 	var tween := create_tween()
 	tween.tween_property(self, "modulate", Color.WHITE, 0.35)
 	await tween.finished
+	_back_to_idle()
 
 
 ## Nur eine Richtung gleichzeitig, keine Diagonalen.
@@ -95,13 +98,13 @@ func shoot(target: Unit, amount := -1) -> void:
 ## Ki-Welle: ein breiter Strahl von der Figur bis cells Felder weit.
 func beam(dir: Vector2i, cells: int) -> void:
 	face(dir)
+	set_pose(Pose.SPEZIAL)
 	var ray := ColorRect.new()
 	ray.color = KI_BLAST_COLOR
-	var half := Grid.TILE_SIZE / 2.0
 	var length := cells * Grid.TILE_SIZE
 	var thick := 6.0
-	# Rechteck vom Mittelpunkt der Figur in Richtung dir.
-	var a := Vector2(half, half)
+	# Rechteck von den Haenden der Figur in Richtung dir.
+	var a := HAND_OFFSET
 	var b := a + Vector2(dir) * length
 	ray.position = Vector2(min(a.x, b.x), min(a.y, b.y)) - Vector2(thick, thick) / 2.0 * Vector2(absi(dir.y), absi(dir.x))
 	ray.size = (b - a).abs() + Vector2(thick * absi(dir.y), thick * absi(dir.x))
@@ -111,20 +114,29 @@ func beam(dir: Vector2i, cells: int) -> void:
 	tween.tween_property(ray, "modulate:a", 0.0, 0.3)
 	await tween.finished
 	ray.queue_free()
+	_back_to_idle()
 
 
 ## Nachbild: ein blasser Abdruck bleibt stehen, die Figur rutscht weiter.
 func dash_to(target: Vector2i) -> void:
-	var ghost := ColorRect.new()
-	ghost.color = Color(body_color, 0.6)
-	ghost.position = position + Vector2(2, 3)
-	ghost.size = Vector2(Grid.TILE_SIZE - 4, Grid.TILE_SIZE - 5)
+	var ghost: CanvasItem
+	if has_sprite():
+		ghost = sprite_copy()
+		ghost.modulate = Color(KI_AURA_COLOR, 0.7)
+	else:
+		var box := ColorRect.new()
+		box.color = Color(body_color, 0.6)
+		box.position = position + Vector2(2, 3)
+		box.size = Vector2(Grid.TILE_SIZE - 4, Grid.TILE_SIZE - 5)
+		ghost = box
 	get_parent().add_child(ghost)
 	var fade := ghost.create_tween()
 	fade.tween_property(ghost, "modulate:a", 0.0, 0.4)
 	fade.tween_callback(ghost.queue_free)
 	face((target - cell).sign())
+	set_pose(Pose.GEHEN)
 	await slide_to(target, 0.08)
+	_back_to_idle()
 
 
 ## Wurf: den (noch lebenden) Gegner in Blickrichtung wegschleudern.
@@ -193,20 +205,24 @@ func _dodge_from(attacker: Unit) -> void:
 	var away := Vector2((cell - attacker.cell).sign())
 	var side := Vector2(away.y, away.x) * 5.0
 	var home := Grid.cell_to_world(cell)
+	set_pose(Pose.GEHEN)
 	var tween := create_tween()
 	tween.tween_property(self, "position", home + side, 0.06)
 	tween.tween_property(self, "position", home, 0.08)
 	await tween.finished
+	_back_to_idle()
 
 
 func _die() -> void:
-	modulate = Color(0.4, 0.4, 0.4)
+	modulate = Color(0.6, 0.6, 0.6)
 	super()
 
 
 func _draw() -> void:
 	super()
-	# Aktive Haltung als heller Rahmen um die Figur.
+	# Aktive Haltung als Ki-Ring um die Fuesse.
 	if counter_stance > 0 or sure_dodge:
 		var s := Grid.TILE_SIZE
-		draw_rect(Rect2(0.5, 1.5, s - 1, s - 2), KI_AURA_COLOR, false, 1.0)
+		draw_set_transform(Vector2(s / 2.0, s - 1.0), 0.0, Vector2(1.0, 0.35))
+		draw_arc(Vector2.ZERO, 10.0, 0.0, TAU, 24, KI_AURA_COLOR, 1.0)
+		draw_set_transform(Vector2.ZERO)

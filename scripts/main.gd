@@ -4,6 +4,8 @@ extends Node2D
 ## Eine Aktion pro Zug. Techniken kosten Ki, Aufladen und normale Treffer bringen Ki.
 ## Ein Run besteht aus mehreren Maps (Game.MAPS), jede Map aus Runden (data/maps/*.tres).
 ## Sind alle Gegner einer Runde besiegt, startet die naechste; nach dem Boss kommt die naechste Map.
+## Figuren werden nach ihrer Zeile sortiert gezeichnet (y_sort), damit weiter unten stehende
+## Figuren vor den hoeheren stehen. Zu Beginn jeder Map und vor jedem Boss kommt ein Auftritt (Intro).
 
 const ENEMY_SCENE := preload("res://scenes/enemy.tscn")
 
@@ -17,6 +19,8 @@ const BAR_RECT_HP := Rect2(4, 163, 52, 4)
 const BAR_RECT_KI := Rect2(4, 171, 52, 4)
 ## Markierte Felder einer angekuendigten Boss-Attacke.
 const WARNING_COLOR := Color(1, 0.25, 0.2, 0.45)
+## Feine Rasterlinien ueber dem Hintergrundbild, damit man die Felder erkennt.
+const GRID_LINE_COLOR := Color(0, 0, 0, 0.15)
 
 ## Kurze Pause nach Sieg oder Niederlage, bevor der Ergebnis-Bildschirm kommt.
 const END_DELAY := 1.2
@@ -27,8 +31,9 @@ var round_index := 0
 ## Waehrend ein Zug abgespielt wird, keine neue Eingabe.
 var _busy := false
 var _game_over := false
-## Zwischen zwei Maps keine Eingabe.
+## Zwischen zwei Maps und waehrend eines Auftritts keine Eingabe.
 var _between_maps := false
+var _intro := false
 ## Technik, fuer die gerade eine Richtung gewaehlt wird (null = keine).
 var _aiming: TechniqueData = null
 
@@ -37,6 +42,7 @@ var _aiming: TechniqueData = null
 @onready var message_label: Label = $MessageLabel
 @onready var technique_label: Label = $TechniqueLabel
 @onready var round_label: Label = $RoundLabel
+@onready var intro: Intro = $Intro
 
 
 func _ready() -> void:
@@ -51,21 +57,34 @@ func _start_map(index: int) -> void:
 	map = Game.MAPS[index]
 	_start_round(0)
 	_show_message("%s - %s!" % [map.display_name, map.rounds[0].display_name])
+	if map.artwork:
+		_intro = true
+		intro.show_map(map, index + 1)
+		await intro.closed
+		_intro = false
 
 
 func _start_round(index: int) -> void:
 	round_index = index
 	var round_data: RoundData = map.rounds[index]
+	var boss: EnemyData = null
 	for i in round_data.enemies.size():
 		var enemy: Enemy = ENEMY_SCENE.instantiate()
 		enemy.setup(round_data.enemies[i], round_data.cells[i])
 		enemy.died.connect(_on_enemy_died)
 		add_child(enemy)
+		if enemy.data.is_boss:
+			boss = enemy.data
 	_show_message("%s!" % round_data.display_name)
+	if boss and boss.portrait:
+		_intro = true
+		intro.show_boss(boss)
+		await intro.closed
+		_intro = false
 
 
 func _process(_delta: float) -> void:
-	if _game_over or _busy or _between_maps:
+	if _game_over or _busy or _between_maps or _intro:
 		return
 	if _aiming:
 		_process_aiming()
@@ -385,13 +404,20 @@ func _show_message(text: String) -> void:
 	_update_status()
 
 
-## Schachbrett-Boden als Platzhalter (Farben aus der Map) und Warnfelder der Bosse.
+## Boden: Hintergrundbild der Map mit feinem Raster, sonst Schachbrett. Dazu die Warnfelder der Bosse.
 func _draw() -> void:
 	var s := Grid.TILE_SIZE
-	for y in Grid.HEIGHT:
-		for x in Grid.WIDTH:
-			var color := map.floor_color_a if (x + y) % 2 == 0 else map.floor_color_b
-			draw_rect(Rect2(x * s, y * s, s, s), color)
+	if map.background:
+		draw_texture_rect(map.background, Rect2(0, 0, Grid.WIDTH * s, Grid.HEIGHT * s), false)
+		for x in range(1, Grid.WIDTH):
+			draw_line(Vector2(x * s, 0), Vector2(x * s, Grid.HEIGHT * s), GRID_LINE_COLOR, 1.0)
+		for y in range(1, Grid.HEIGHT):
+			draw_line(Vector2(0, y * s), Vector2(Grid.WIDTH * s, y * s), GRID_LINE_COLOR, 1.0)
+	else:
+		for y in Grid.HEIGHT:
+			for x in Grid.WIDTH:
+				var color := map.floor_color_a if (x + y) % 2 == 0 else map.floor_color_b
+				draw_rect(Rect2(x * s, y * s, s, s), color)
 	for enemy: Enemy in _enemies():
 		for cell in enemy.warned_cells:
 			draw_rect(Rect2(cell * s, Vector2(s, s)), WARNING_COLOR)

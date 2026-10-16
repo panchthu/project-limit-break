@@ -25,7 +25,10 @@ Bosse holen regelmaessig zu einer Spezialattacke aus: die Felder werden rot mark
 - `data/techniques/` Ki-Techniken als Daten (Kosten, Schaden, Reichweite)
 - `data/enemies/` Gegnertypen und Bosse als Daten (Verhalten, Werte, Spezialattacke)
 - `data/maps/` Maps als Daten (Bodenfarben, Runden mit Gegnern und Startfeldern); die Reihenfolge im Run steht in `Game.MAPS`
-- `assets/` Grafiken, Sounds, Musik, Schriften
+- `assets/sprites/` Spielfiguren: Helden als Streifen mit 7 Posen (idle, gehen, angriff1, angriff2, spezial, treffer, ko), Gegner und Bosse mit einer Pose
+- `assets/artworks/` Helden-Artworks (Auswahl, Ergebnis), Boss-Portraets (Auftritt vor dem Bosskampf) und Map-Artworks (Auftritt zu Beginn der Map)
+- `assets/maps/` Spielfeld-Hintergruende der Maps (320 x 160 = 20 x 10 Felder)
+- `tools/sprites_vorbereiten.py` macht aus den grossen KI-Bildern die kleinen Spiel-Grafiken (Groessen stehen oben im Skript)
 
 ## Meilensteine
 Der Gesamtplan (M1 bis M13) liegt in der Projekt-Roadmap.
@@ -34,4 +37,5 @@ Der Gesamtplan (M1 bis M13) liegt in der Projekt-Roadmap.
 3. Bildschirme: Titel, Kaempfer-Auswahl, Ergebnis
 4. Kaempfer als Daten mit echten Unterschieden
 5. Ki-Leiste und Techniken
-6. Gegnertypen und Maps als Daten, kompletter Run bis zum Endboss  <- aktuell
+6. Gegnertypen und Maps als Daten, kompletter Run bis zum Endboss
+- Grafik fuer den PoC: Sprites, Artworks und Map-Hintergruende statt farbiger Kaestchen  <- aktuell

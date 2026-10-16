@@ -30,6 +30,7 @@ func setup(enemy_data: EnemyData, at: Vector2i) -> void:
 	armor = data.armor
 	body_color = data.color
 	outlined = data.is_boss
+	set_sprite(data.sprite, 1, true)
 
 
 func take_damage(amount: int) -> void:
