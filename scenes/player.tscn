@@ -4,3 +4,7 @@
 
 [node name="Player" type="Node2D"]
 script = ExtResource("1_player")
+start_cell = Vector2i(2, 2)
+max_hp = 20
+attack = 3
+body_color = Color(0.949, 0.647, 0.255, 1)
