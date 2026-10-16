@@ -23,9 +23,9 @@ OUT = os.path.join(REPO, "assets")
 
 ## Hoehe in Spielpixeln (ein Feld = 16). Bosse sind deutlich groesser.
 HOEHEN = {
-    "helden/techniker": 30,
-    "helden/koloss": 32,
-    "helden/ki_akrobat": 30,
+    "helden/techniker": 32,
+    "helden/koloss": 34,
+    "helden/ki_akrobat": 31,
     "gegner/schlaeger": 30,
     "gegner/ki_schuetze": 28,
     "gegner/panzer": 31,
