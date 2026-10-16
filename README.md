@@ -12,8 +12,8 @@ Rundenbasierter 2D-Roguelike im Retro-Anime-Stil. Godot 4 (GDScript), interne Au
 - `assets/` Grafiken, Sounds, Musik, Schriften
 
 ## Meilensteine
-1. Figur bewegt sich auf einem Raster  <- aktuell
-2. Ein Gegner, einfacher Kampf
+1. Figur bewegt sich auf einem Raster
+2. Ein Gegner, einfacher Kampf  <- aktuell
 3. Zufaelliger Raum / Dungeon
 4. Tod und Neustart
 5. Items, Upgrades, Kaempfer-Unterschiede, Art, Story

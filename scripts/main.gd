@@ -1,24 +1,32 @@
 extends Node2D
-## Hauptszene: zeichnet den Boden, richtet die Tasten ein und zaehlt die Zuege.
+## Hauptszene: zeichnet den Boden, richtet die Tasten ein und steuert die Zuege.
+## Ablauf: Spieler handelt (laufen oder angreifen), danach handelt jeder Gegner.
 
-## Tastenbelegung (WASD und Pfeiltasten).
+## Tastenbelegung (WASD und Pfeiltasten, R fuer Neustart).
 const KEYS := {
 	"move_up": [KEY_W, KEY_UP],
 	"move_down": [KEY_S, KEY_DOWN],
 	"move_left": [KEY_A, KEY_LEFT],
 	"move_right": [KEY_D, KEY_RIGHT],
+	"restart": [KEY_R],
 }
 
 var turn := 0
+## Waehrend ein Zug abgespielt wird, keine neue Eingabe.
+var _busy := false
+var _game_over := false
 
-@onready var player := $Player
-@onready var turn_label: Label = $TurnLabel
+@onready var player: Unit = $Player
+@onready var status_label: Label = $StatusLabel
+@onready var message_label: Label = $MessageLabel
 
 
 func _ready() -> void:
 	_setup_input()
-	player.moved.connect(_on_player_moved)
-	_update_label()
+	player.died.connect(_on_player_died)
+	for enemy: Unit in _enemies():
+		enemy.died.connect(_on_enemy_died)
+	_update_status()
 
 
 func _setup_input() -> void:
@@ -32,13 +40,91 @@ func _setup_input() -> void:
 			InputMap.action_add_event(action, event)
 
 
-func _on_player_moved(_cell: Vector2i) -> void:
+func _process(_delta: float) -> void:
+	if _game_over:
+		if Input.is_action_just_pressed("restart"):
+			get_tree().reload_current_scene()
+		return
+	if _busy:
+		return
+	var dir: Vector2i = player.read_direction()
+	if dir != Vector2i.ZERO:
+		_take_turn(dir)
+
+
+func _take_turn(dir: Vector2i) -> void:
+	var target := player.cell + dir
+	var enemy := _unit_at(target)
+	if enemy == null and not _is_free(target):
+		# Gegen die Wand gelaufen: nur umdrehen, kein Zug verbraucht.
+		player.face(dir)
+		return
+	_busy = true
+	if enemy:
+		await player.attack_unit(enemy)
+		_show_message("Treffer! -%d" % player.attack)
+	else:
+		await player.move_to(target)
+	await _enemy_turn()
 	turn += 1
-	_update_label()
+	_update_status()
+	_busy = false
 
 
-func _update_label() -> void:
-	turn_label.text = "Zug %d" % turn
+func _enemy_turn() -> void:
+	for enemy: Unit in _enemies():
+		if not player.is_alive():
+			return
+		var distance: Vector2i = (player.cell - enemy.cell).abs()
+		if distance.x + distance.y == 1:
+			await enemy.attack_unit(player)
+			_show_message("Autsch! -%d" % enemy.attack)
+		else:
+			var step: Vector2i = enemy.next_step(player.cell, _is_free)
+			if step != Vector2i.ZERO:
+				await enemy.move_to(enemy.cell + step)
+
+
+func _enemies() -> Array[Node]:
+	return get_tree().get_nodes_in_group("enemies")
+
+
+func _unit_at(cell: Vector2i) -> Unit:
+	for enemy: Unit in _enemies():
+		if enemy.cell == cell:
+			return enemy
+	return null
+
+
+func _is_free(cell: Vector2i) -> bool:
+	return Grid.is_inside(cell) and cell != player.cell and _unit_at(cell) == null
+
+
+func _on_enemy_died() -> void:
+	# Der sterbende Gegner hat die Gruppe schon verlassen.
+	if _enemies().is_empty():
+		_end_game("Gewonnen! R = neu")
+
+
+func _on_player_died() -> void:
+	_end_game("Besiegt! R = neu")
+
+
+func _end_game(text: String) -> void:
+	_show_message(text)
+	_game_over = true
+
+
+func _update_status() -> void:
+	status_label.text = "HP %d/%d   Zug %d" % [player.hp, player.max_hp, turn]
+
+
+func _show_message(text: String) -> void:
+	# Nach Sieg oder Niederlage bleibt die Endnachricht stehen.
+	if _game_over:
+		return
+	message_label.text = text
+	_update_status()
 
 
 ## Schachbrett-Boden als Platzhalter.
